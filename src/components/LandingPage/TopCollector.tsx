@@ -65,7 +65,7 @@ const TopCollector = () => {
                 Checkout Top Rated Collectors on the Ngaraga Marketplace
               </p>
             </div>
-            <button className="btn bg-amber-400">
+            <button className="btn btn-primary">
               <CiTrophy className="h-4 w-4" />
               <span>View Rankings</span>
             </button>

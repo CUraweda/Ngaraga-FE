@@ -4,7 +4,7 @@ import { CiShoppingCart } from "react-icons/ci";
 const NavbarHome = () => {
   return (
     <div className="w-full">
-      <div className="navbar bg-white shadow-sm w-full">
+      <div className="navbar bg-white shadow-sm w-full px-5">
         <div className="navbar-start">
           <div className="dropdown">
             <div tabIndex={0} role="button" className="btn btn-ghost lg:hidden">
@@ -40,7 +40,7 @@ const NavbarHome = () => {
               </li>
             </ul>
           </div>
-          <a className="btn btn-ghost text-xl">
+          <a className="">
             <img src={logo} alt="" />
           </a>
         </div>
@@ -62,8 +62,7 @@ const NavbarHome = () => {
           <a className="btn btn-ghost text-2xl">
             <CiShoppingCart />
           </a>
-          <a className="btn btn-outline text-amber-500">Sign In</a>
-          <a className="btn bg-amber-400 text-white">Sign Up</a>
+          <a className="btn btn-outline btn-primary">Sign In</a>
         </div>
       </div>
     </div>

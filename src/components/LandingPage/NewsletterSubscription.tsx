@@ -72,7 +72,7 @@ const NewsletterSubscription = () => {
                         <button
                           type="submit"
                           disabled={isSubmitting}
-                          className="bg-amber-400 hover:bg-amber-500 text-gray-900 font-medium py-3 px-6 rounded-lg transition-colors duration-200 disabled:opacity-70"
+                          className="btn btn-primary"
                         >
                           {isSubmitting ? "Subscribing..." : "Subscribe"}
                         </button>

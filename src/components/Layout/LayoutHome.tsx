@@ -9,7 +9,8 @@ const LayoutHome = () => {
         <div className="w-full flex top-0 z-10 sticky">
           <NavbarHome />
         </div>
-        <div className="w-full flex justify-center items-center min-h-screen">
+       
+        <div className="w-full p-3 min-h-screen">
           <Outlet />
         </div>
         <div className="w-full bottom-0 mt-10">
