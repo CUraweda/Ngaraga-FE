@@ -55,7 +55,7 @@ interface CollectorProps {
 const TopCollector = () => {
   return (
     <div>
-      <section className="py-16 md:py-24 bg-white dark:bg-gray-900">
+      <section className="py-16 md:py-24 bg-white dark:bg-gray-900 rounded-lg p-5">
       <div className="container mx-auto px-6">
         <div className="max-w-7xl mx-auto">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-12 gap-4">

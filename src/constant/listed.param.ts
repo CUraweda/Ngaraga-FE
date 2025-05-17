@@ -6,6 +6,7 @@ export const listedParam = {
   signup: "/register",
   market: "/market",
   profile: "/profile",
+  detailCard: "/market/detail-card",
 };
 
 export const listedParamAdmin = {
@@ -14,4 +15,5 @@ export const listedParamAdmin = {
   category: "/admin/collections/category",
   series: "/admin/collections/series",
   cards: "/admin/collections/cards",
+  cardsDetail: "/admin/collections/card-detail",
 };

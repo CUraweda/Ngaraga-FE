@@ -8,21 +8,24 @@ import React from "react";
 
 const Home = () => {
   return (
-    <div className="px-5 w-5/6 mx-auto flex flex-col gap-10">
-      <Hero />
-      <div className="mt-30">
+    <div className="">
+      <div className="">
+        <Hero />
+      </div>
+      
+      <div className="mt-30 ">
         <TrendingCard />
       </div>
-      <div className="mt-30">
+      <div className="">
         <TopCollector/>
       </div>
-      <div className="mt-10">
+      <div className="">
         <Category/>
       </div>
-      <div className="mt-10">
+      <div className="">
         <Works/>
       </div>
-      <div className="mt-10">
+      <div className="">
         <NewsletterSubscription/>
       </div>
     </div>

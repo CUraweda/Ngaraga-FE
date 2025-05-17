@@ -12,8 +12,15 @@ import Master from "@/pages/admin/Collections/Master";
 import Category from "@/pages/admin/Collections/Category";
 import Series from "@/pages/admin/Collections/Series";
 import Cards from "@/pages/admin/Collections/Cards";
+import ProtectedLayout from "./ProtectedLayout";
+import CardDetail from "@/pages/admin/Collections/CardDetail";
+import DetailCard from "@/pages/user/DetailCard";
 
 const Route: ReturnType<typeof createBrowserRouter> = createBrowserRouter([
+  {
+    path: "*",
+    element: <Home />,
+  },
   {
     path: listedParam.signin,
     element: <Login />,
@@ -28,21 +35,37 @@ const Route: ReturnType<typeof createBrowserRouter> = createBrowserRouter([
     children: [
       { path: listedParam.home, element: <Home /> },
       { path: listedParam.market, element: <HomeMarket /> },
+      { path: listedParam.detailCard, element: <DetailCard /> },
+    ],
+  },
+  {
+    path: listedParam.home,
+    element: (
+      <ProtectedLayout>
+        <LayoutHome />
+      </ProtectedLayout>
+    ),
+    children: [
       { path: listedParam.profile, element: <ProfileUser /> },
     ],
   },
   {
     path: listedParamAdmin.home,
-    element: <LayoutAdmin />,
+    element: (
+      <ProtectedLayout>
+        <LayoutAdmin />
+      </ProtectedLayout>
+    ),
     children: [
       { path: listedParamAdmin.home, element: <Dashboard /> },
       { path: listedParamAdmin.master, element: <Master /> },
       { path: listedParamAdmin.category, element: <Category /> },
       { path: listedParamAdmin.series, element: <Series /> },
       { path: listedParamAdmin.cards, element: <Cards /> },
-    
+      { path: listedParamAdmin.cardsDetail, element: <CardDetail /> },
     ],
   },
+
 ]);
 
 export default Route;

@@ -1,11 +1,11 @@
-import React from "react";
+
 import CardTrending from "../ui/CardTrending";
 
 const TrendingCard = () => {
   return (
     <div>
-      <section className="bg-white dark:bg-gray-900">
-        <div className="mx-auto">
+      <section className="bg-base-200 dark:bg-gray-900 p-5 rounded-lg ">
+        <div className=" py-10 w-5/6 mx-auto flex flex-col gap-10">
           <div className=" mx-auto">
             <div className="mb-12">
               <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4">

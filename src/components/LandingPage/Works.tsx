@@ -27,7 +27,7 @@ interface StepProps {
       icon: <FaCartArrowDown className="w-12 h-12 text-amber-50" />,
     },
   ]
-
+    
   function StepCard({ title, description, icon }: StepProps) {
     return (
       <div className="bg-gray-100 dark:bg-gray-800 rounded-xl p-8 flex flex-col items-center text-center transition-all duration-300 hover:shadow-md hover:-translate-y-1">

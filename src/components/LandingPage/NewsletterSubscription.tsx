@@ -25,7 +25,7 @@ const NewsletterSubscription = () => {
   };
   return (
     <div>
-      <section className="py-16 md:py-24 bg-gray-900 rounded-2xl dark:bg-gray-900">
+      <section className="py-16 md:py-24 bg-gray-900 rounded-2xl dark:bg-gray-900 p-5">
         <div className="container mx-auto px-6">
           <div className="max-w-6xl mx-auto">
             <div className="rounded-2xl overflow-hidden bg-gray-900">

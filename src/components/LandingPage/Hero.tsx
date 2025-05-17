@@ -2,25 +2,40 @@ import React from "react";
 import { IoRocket } from "react-icons/io5";
 import TiltedCard from "../ui/TiledCard";
 import SplashCursor from "../ui/SplashScreen";
+import BlurText from "../ui/BlurText";
 
 const Hero = () => {
+  const handleAnimationComplete = () => {
+    console.log("Animation completed!");
+  };
   return (
-    <div className=" pt-20">
-     
-      <div className="grid grid-cols-1 gap-12 lg:gap-16 md:grid-cols-2 items-center">
-        {/* Left Column */}
+    <div className="">
+      <div className="bg-white min-h-screen flex flex-col justify-center">
+      <div className="grid grid-cols-1 gap-12 lg:gap-16 md:grid-cols-2 items-center bg-white py-10 w-5/6 mx-auto">
+
         <div className="space-y-10 md:pr-8">
           <div className="space-y-6">
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight text-gray-900 dark:text-white">
-              Lorem Ipsum dolor{" "}
-              <span className="text-gray-800 dark:text-gray-200">
-                amet zdzf
-              </span>
-            </h1>
-            <p className="text-lg text-gray-600 dark:text-gray-300 leading-relaxed max-w-xl">
-              Lorem ipsum dolor amet Lorem ipsum dolor amet Lorem ipsum dolor
+            <BlurText
+              text="Isn't this so cool?!"
+              delay={150}
+              animateBy="words"
+              direction="top"
+              onAnimationComplete={handleAnimationComplete}
+              className="text-6xl font-bold mb-8"
+            />
+            <BlurText
+              text="Lorem ipsum dolor amet Lorem ipsum dolor amet Lorem ipsum dolor
               amet Lorem ipsum dolor amet Lorem ipsum dolor amet Lorem ipsum
-              dolor
+              dolor"
+              delay={150}
+              animateBy="words"
+              direction="top"
+              onAnimationComplete={handleAnimationComplete}
+              className="text-xl mb-8"
+            />
+           
+            <p className="text-lg text-gray-600 dark:text-gray-300 leading-relaxed max-w-xl">
+              
             </p>
           </div>
 
@@ -70,10 +85,13 @@ const Hero = () => {
             showMobileWarning={false}
             showTooltip={false}
             displayOverlayContent={false}
+            showSpecialBadge={true}
             overlayContent={<div></div>}
           />
         </div>
       </div>
+      </div>
+     
       <SplashCursor />
     </div>
   );

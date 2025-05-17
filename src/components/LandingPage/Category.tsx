@@ -76,7 +76,7 @@ function CategoryCard({ name, icon, bgImage }: CategoryProps) {
 const Category = () => {
   return (
     <div>
-      <section className="py-16 md:py-24 bg-white dark:bg-gray-900">
+      <section className="py-16 md:py-24 bg-base-200 dark:bg-gray-900 rounded-lg p-5">
         <div className="container mx-auto px-6">
           <div className="max-w-7xl mx-auto">
             <div className="mb-12">

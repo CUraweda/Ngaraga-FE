@@ -167,3 +167,12 @@
     @apply bg-background text-foreground;
   }
 }
+
+@keyframes glossy-shine {
+  0% {
+    left: -75%;
+  }
+  100% {
+    left: 125%;
+  }
+}

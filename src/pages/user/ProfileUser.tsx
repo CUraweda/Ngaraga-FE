@@ -1,18 +1,20 @@
 import {
-  Globe,
-  Instagram,
-  MessageSquare,
+
   Pencil,
   QrCode,
-  Twitter,
-  Youtube,
 } from "lucide-react";
-import React from "react";
+
 import Placeholder from "@/assets/Image PlaceHolder.png";
 import Modal, { openModal } from "@/components/ui/Modal";
 import QRScanner from "@/components/ui/QRCodeReader";
+import userStore from "@/store/user.store";
+import { MdEmail } from "react-icons/md";
+import { BsWhatsapp } from "react-icons/bs";
+import CardList from "@/components/userCard/cardList";
 
 const ProfileUser = () => {
+  const { user } = userStore();
+
   return (
     <div>
       <section className="">
@@ -41,7 +43,7 @@ const ProfileUser = () => {
           <div className="">
             <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 w-full ">
               <h1 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4 md:mb-0">
-                Animakid
+                {user?.name}
               </h1>
               <div className="flex items-center gap-4">
                 <button className="btn btn-outline  text-amber-600 flex items-center gap-2" onClick={() => {openModal("modal-QR")}}>
@@ -77,7 +79,22 @@ const ProfileUser = () => {
                 Bio
               </h2>
               <p className="text-gray-600 dark:text-gray-300">
-                The internet's friendliest designer kid.
+                {user?.bio
+                  ? user?.bio
+                  : "No bio available. Please update your profile."}
+              </p>
+            </div>
+            <div className="mb-8">
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+                Account Info
+              </h2>
+              <p className="text-gray-600 dark:text-gray-300 flex items-center gap-2">
+                <span><MdEmail/></span>{user?.email}
+    
+              </p>
+              <p className="text-gray-600 dark:text-gray-300 flex items-center gap-2">
+                <span><BsWhatsapp/></span>{user?.whatsapp ? user?.whatsapp : "Not Available"}
+    
               </p>
             </div>
 
@@ -92,22 +109,27 @@ const ProfileUser = () => {
             name="my_tabs_2"
             className="tab"
             aria-label="Card"
+             defaultChecked
           />
-          <div className="tab-content p-10">Tab content 1</div>
+          <div className="tab-content p-10">
+            <CardList id={user?.id ?? ""}/>
+          </div>
 
           <input
             type="radio"
             name="my_tabs_2"
             className="tab"
             aria-label="Special Card"
-            defaultChecked
+           
           />
           <div className="tab-content  p-10">Tab content 2</div>
         </div>
       </div>
 
       <Modal id="modal-QR">
-        <QRScanner/>
+        <div className="max-w-sm mx-auto">
+          <QRScanner/>
+        </div>
       </Modal>
     </div>
   );

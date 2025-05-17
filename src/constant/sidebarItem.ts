@@ -39,17 +39,7 @@ export const sidebarList = [
         label: "Cards",
         path: listedParamAdmin.cards,
         permission: ['user']
-      },
-      {
-        label: "Special Cards",
-        path: "listed.user",
-        permission: ['user']
-      },
-      {
-        label: "Tags",
-        path: "listed.user",
-        permission: ['user']
-      },
+      }
      
     ],
     permission: []
