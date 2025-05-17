@@ -3,6 +3,8 @@ import categoryStore from "@/store/category.store";
 import Pagination from "@/components/ui/Pagination";
 import Modal, { closeModal, openModal } from "@/components/ui/Modal";
 import Input from "@/components/ui/InputField";
+import FileUploader from "@/components/ui/FileUpload";
+import { Message } from "@/components/error.field";
 
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
@@ -12,6 +14,7 @@ type props = {
   code: string;
   name: string;
   description: string;
+  image: File;
 };
 
 const Category = () => {
@@ -25,13 +28,13 @@ const Category = () => {
     updateCategory,
   } = categoryStore();
   const [currentPage, setCurrentPage] = useState(1);
-  const [search, setSearch] = useState("");
+
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [totalPages, setTotalPages] = useState(0);
   const [edit, setEdit] = useState(false);
 
   const fetchData = async () => {
-    const payload = `limit=${itemsPerPage}&page=${currentPage}&search=name:${search}`;
+    const payload = `limit=${itemsPerPage}&page=${currentPage}`;
     await getCategory(payload);
   };
 
@@ -40,21 +43,36 @@ const Category = () => {
     handleSubmit,
     reset,
     setValue,
+    watch,
     formState: { errors },
   } = useForm<props>({
-    defaultValues: { code: "", name: "", description: "" },
+    defaultValues: { code: "", name: "", description: "", image: undefined },
     resolver: yupResolver(
       yup.object().shape({
         code: yup.string().required("code required"),
         name: yup.string().required("name required"),
         description: yup.string().required("description required"),
+        image: yup
+          .mixed<File>()
+          .required("image required")
+          .test(
+            "fileSize",
+            "File size must not exceed 2MB",
+            (value) => (value ? value.size <= 2 * 1024 * 1024 : false) // 2MB limit
+          )
+          .test(
+            "fileType",
+            "Only image files jpeg, jpg, png are allowed",
+            (value) =>
+              value ? ["image/jpeg", "image/png"].includes(value.type) : false
+          ),
       })
     ),
   });
 
   useEffect(() => {
     fetchData();
-  }, [currentPage, itemsPerPage, search]);
+  }, [currentPage, itemsPerPage]);
 
   useEffect(() => {
     if (categories) {
@@ -70,13 +88,23 @@ const Category = () => {
     }
   }, [category]);
 
-  const onSubmit = async (formData: props) => {
+  const onSubmit = async (data: props) => {
+    const formData = new FormData();
+    formData.append("code", data.code);
+    formData.append("name", data.name);
+    formData.append("description", data.description);
+    formData.append("image", data.image);
     await createCategory(formData);
     closeModal("add-master");
     reset();
   };
-  const onEdit = async (formData: props) => {
+  const onEdit = async (data: props) => {
     const id = category.id;
+    const formData = new FormData();
+    formData.append("code", data.code);
+    formData.append("name", data.name);
+    formData.append("description", data.description);
+    formData.append("image", data.image);
     await updateCategory(id, formData);
     closeModal("add-master");
     setEdit(false);
@@ -202,6 +230,23 @@ const Category = () => {
                 placeholder="Description"
                 {...register("description")}
               ></textarea>
+            </div>
+            <div className="flex flex-col w-full mt-5">
+              <label htmlFor="">Image</label>
+              <FileUploader
+                value={watch("image") ?? undefined}
+                onChange={(file) => {
+                  if (file) {
+                    setValue("image", file, {
+                      shouldValidate: true,
+                    });
+                  }
+                }}
+              />
+              <Message
+                isError={Boolean(errors?.image)}
+                message={errors?.image?.message || " "}
+              />
             </div>
 
             <button className="btn btn-primary mt-5 w-full" type="submit">

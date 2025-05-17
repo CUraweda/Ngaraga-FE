@@ -11,6 +11,8 @@ import { useEffect, useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { listedParam, listedParamAdmin } from "@/constant/listed.param";
 
+import bg from "@/assets/bg-login.jpeg";
+
 type SignIn = {
   email: string;
   password: string;
@@ -88,10 +90,12 @@ const Login = () => {
   return (
     <>
       <div className="flex items-center justify-center h-screen bg-gray-100">
-        <div className="w-1/2 h-full flex justify-center items-center">asd</div>
-        <div className="w-1/2 h-full  flex flex-col justify-center items-start p-5">
+        <div className="hidden md:flex w-1/2 h-full justify-center items-center">
+          <img src={bg} alt="logo" className="w-full h-full object-cover" />
+        </div>
+        <div className="w-full md:w-1/2 h-full flex flex-col justify-center items-start p-5">
           <div className="w-full flex">
-            <button className="btn btn-sm btn-ghost text-yellow-500 text-md">
+            <button className="btn btn-sm btn-ghost text-yellow-500 text-md" onClick={() => navigate("/")}>
               <FaArrowLeftLong /> Back
             </button>
           </div>
@@ -135,9 +139,7 @@ const Login = () => {
                     </button>
                   </div>
                 </div>
-                <div className="w-full flex justify-end">
-                  <span>Forgot Your Password?</span>
-                </div>
+               
                 <button
                   type="submit"
                   className="btn w-full btn-warning bg-yellow-500 text-white"
@@ -147,8 +149,8 @@ const Login = () => {
               </form>
               <p>
                 {" "}
-                Don’t you have an account?{" "}
-                <span className="font-bold text-yellow-500">Sign Up</span>
+                Don't you have an account?{" "}
+                <span className="font-bold text-yellow-500 cursor-pointer" onClick={() => navigate("/register")}>Sign Up</span>
               </p>
             </div>
           </div>

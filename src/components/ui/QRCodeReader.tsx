@@ -1,13 +1,17 @@
-import { useEffect, useRef, useState } from 'react';
-import { Html5Qrcode } from 'html5-qrcode';
+import { useEffect, useRef, useState } from "react";
+import { Html5Qrcode } from "html5-qrcode";
 
-export default function QRScanner() {
+interface QRScannerProps {
+  onResult: (data: string) => void;
+}
+
+export default function QRScanner({ onResult }: QRScannerProps) {
   const [scanning, setScanning] = useState(false);
   const qrRef = useRef<Html5Qrcode | null>(null);
   const [cameraId, setCameraId] = useState<string | null>(null);
 
   useEffect(() => {
-    Html5Qrcode.getCameras().then(devices => {
+    Html5Qrcode.getCameras().then((devices) => {
       if (devices.length) {
         setCameraId(devices[0].id);
       } else {
@@ -24,15 +28,14 @@ export default function QRScanner() {
     qrRef.current.start(
       cameraId,
       { fps: 10, qrbox: { width: 250, height: 250 } },
-      decodedText => {
-        console.log("✅ QR Code:", decodedText);
+      (decodedText) => {
+        onResult(decodedText); 
         stopScan();
       },
-      error => {
+      (error) => {
         console.warn("⛔ Scan error:", error);
       }
     );
-
     setScanning(true);
   };
 
@@ -52,9 +55,8 @@ export default function QRScanner() {
 
     try {
       const result = await scanner.scanFile(file, true);
-      console.log("✅ QR from file:", result);
+      onResult(result);
     } catch (err) {
-      console.error("⛔ File scan error:", err);
       alert("Gagal membaca QR dari gambar.");
     } finally {
       scanner.clear();

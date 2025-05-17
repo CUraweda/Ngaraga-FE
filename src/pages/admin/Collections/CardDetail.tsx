@@ -6,6 +6,8 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { QRCodeCanvas } from "qrcode.react";
 import Modal, { closeModal, openModal } from "@/components/ui/Modal";
+import JSZip from "jszip";
+import { saveAs } from "file-saver";
 
 const CardDetail = () => {
   const [searchParams] = useSearchParams();
@@ -93,6 +95,24 @@ const CardDetail = () => {
     await deleteRequiredCard(idSpecial, id);
     
   };
+
+  const handleDownloadZip = async (cardsList: any) => {
+    const zip = new JSZip();
+  
+    for (const item of cardsList.items) {
+      const canvas = document.getElementById(item.uniqeCode) as HTMLCanvasElement;
+      if (canvas) {
+        const dataUrl = canvas.toDataURL("image/png");
+        const base64 = dataUrl.split(",")[1];
+  
+        zip.file(`QR-${item.uniqeCode}.png`, base64, { base64: true });
+      }
+    }
+  
+    const content = await zip.generateAsync({ type: "blob" });
+    saveAs(content, "qr-codes.zip");
+  };
+
   return (
     <div>
       <div className="w-full flex">
@@ -163,11 +183,11 @@ const CardDetail = () => {
           <div className="w-1/2 flex-col flex gap-2">
             <div className="w-full border-l-10 border-amber-300 min-h-32 p-3 shadow-md rounded-md flex flex-col gap-5">
               <span className="text-2xl font-bold text-amber-500">
-                Stock / Card not linked User
+                Stock
               </span>
               <div>
                 <span className="text-5xl font-bold">
-                  {cardItem?.totalUnlinkedCardLists}
+                  {cardItem?.stock}
                 </span>
                 <p>Card</p>
               </div>
@@ -248,7 +268,7 @@ const CardDetail = () => {
               >
                 Add Stock
               </button>
-              <button className="btn btn-success">Download QR Code</button>
+              <button className="btn btn-success" onClick={() => handleDownloadZip(cardsList)}>Download QR Code</button>
             </div>
           </div>
           <div className="overflow-x-auto ">
@@ -281,7 +301,7 @@ const CardDetail = () => {
                       >
                         <QRCodeCanvas
                           value={item.uniqeCode}
-                          size={30}
+                          size={150}
                           id={item.uniqeCode}
                         />
                       </div>

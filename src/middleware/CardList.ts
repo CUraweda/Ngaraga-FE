@@ -29,3 +29,8 @@ export const deleteCard = async (id: string): Promise<any> => {
   return response.data;
 };
 
+export const claimNormalCard = async (id: string): Promise<any> => {
+  const response = await apiClient.put<any>(`/api/v1/card-list/claim-card/${id}`);
+  return response.data;
+};
+

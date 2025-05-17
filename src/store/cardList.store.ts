@@ -2,7 +2,7 @@ import { create } from "zustand";
 import getErrorMessage from "@/helper/helper.api";
 
 import Swal from "sweetalert2";
-import { deleteCard, getAll, getById, updateCard } from "@/middleware/CardList";
+import { claimNormalCard, deleteCard, getAll, getById, updateCard } from "@/middleware/CardList";
 
 interface State {
   cardsList: any | null;
@@ -11,6 +11,7 @@ interface State {
   deleteCardList: (id: string) => Promise<void>;
   getOneCardList: (id: string) => Promise<void>;
   updateCardList: (id: string, payload: any) => Promise<void>;
+  claimNormalCard: (id: string) => Promise<void>;
 }
 
 const CardListStore = create<State>((set) => ({
@@ -87,6 +88,20 @@ const CardListStore = create<State>((set) => ({
         confirmButtonColor: "#3085d6",
         cancelButtonColor: "#d33",
         cancelButtonText: "Cancel",
+      });
+    }
+  },
+
+  claimNormalCard: async (id) => {
+    try {
+      const { data } = await claimNormalCard(id);
+      // const { data: dataCard } = await getById(data.cardId);
+      // set({ cardListItem: dataCard });
+    } catch (error) {
+      Swal.fire({
+        icon: "error",
+        title: "Oops...",
+        text: getErrorMessage(error, "failed. Please try again."),
       });
     }
   },

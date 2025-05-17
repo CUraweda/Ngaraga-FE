@@ -62,7 +62,11 @@ const HomeMarket = () => {
 
   const handleAddToCart = (id: string) => {
     const imgEl = cardRef.current?.getImage();
-   
+    if (!user) {
+      navigate(listedParam.signin);
+      return;
+    }
+
     if (imgEl && cartIconRef) {
       flyToCart(imgEl, cartIconRef);
     }
@@ -147,7 +151,7 @@ const HomeMarket = () => {
                       <button
                         className="btn  btn-sm btn-ghost bg-amber-400 hover:bg-amber-500 text-gray-900 text-xl"
                         onClick={() => {
-                          handleAddToCart(card.id)
+                          handleAddToCart(card.id);
                         }}
                       >
                         <BiCartAdd />

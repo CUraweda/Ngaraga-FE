@@ -1,6 +1,6 @@
 import { create } from "zustand";
-import { loginAPI, refreshTokenAPI } from "@/middleware/Auth";
-import type { LoginCredentials, LoginResponse, User } from "@/middleware/Auth";
+import { loginAPI, refreshTokenAPI, registerAPI } from "@/middleware/Auth";
+import type { LoginCredentials, LoginResponse, RegisterCredentials,  User } from "@/middleware/Auth";
 import getErrorMessage from "@/helper/helper.api";
 
 interface AuthState {
@@ -9,6 +9,7 @@ interface AuthState {
   isLoading: boolean;
   error: string | null;
   login: (credentials: LoginCredentials) => Promise<void>;
+  register: (credentials: RegisterCredentials) => Promise<void>;
   logout: () => void;
   refreshToken: () => Promise<string | null>;
 }
@@ -63,6 +64,18 @@ const useAuthStore = create<AuthState>((set) => ({
       return null;
     }
   },
+  register: async (credentials: RegisterCredentials) => {
+    set({ isLoading: true, error: null });
+    try {
+      await registerAPI(credentials);
+      set({ isLoading: false });
+    } catch (error: any) {
+      set({
+        error: getErrorMessage(error, "failed. Please try again."),
+        isLoading: false,
+      });
+    }
+  }
 }));
 
 export default useAuthStore;

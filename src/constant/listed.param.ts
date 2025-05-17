@@ -16,4 +16,5 @@ export const listedParamAdmin = {
   series: "/admin/collections/series",
   cards: "/admin/collections/cards",
   cardsDetail: "/admin/collections/card-detail",
+  user: "/admin/user",
 };

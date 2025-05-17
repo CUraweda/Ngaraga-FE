@@ -46,46 +46,6 @@ export const sidebarList = [
   },
  
   {
-    label: 'Pages Setting',
-    path: '',
-    icon: '<FaRegNewspaper />',   
-    subLabel: [
-      {
-        label: "Home Page",
-        path: "listed.user",
-        permission: ['user']
-      },
-      {
-        label: "Sign In Page",
-        path: "listed.user",
-        permission: ['user']
-      },
-      {
-        label: "Sign Up Page",
-        path: "listed.user",
-        permission: ['user']
-      },
-      {
-        label: "Marketplace Page",
-        path: "listed.user",
-        permission: ['user']
-      },
-      {
-        label: "Rangking Page",
-        path: "listed.user",
-        permission: ['user']
-      },
-      {
-        label: "Event Page",
-        path: "listed.user",
-        permission: ['user']
-      },
-     
-    ],
-    permission: []
-  },
- 
-  {
     label: 'Event',
     path: '',
     icon: '<CiCalendar />',   
@@ -93,15 +53,8 @@ export const sidebarList = [
     permission: []
   },
   {
-    label: 'Coupon',
-    path: '',
-    icon: '<IoTicketOutline />',   
-    subLabel: [],
-    permission: []
-  },
-  {
     label: 'Member',
-    path: '',
+    path: listedParamAdmin.user,
     icon: '<GoPeople />',   
     subLabel: [],
     permission: []

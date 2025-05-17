@@ -15,6 +15,7 @@ import Cards from "@/pages/admin/Collections/Cards";
 import ProtectedLayout from "./ProtectedLayout";
 import CardDetail from "@/pages/admin/Collections/CardDetail";
 import DetailCard from "@/pages/user/DetailCard";
+import User from "@/pages/admin/User";
 
 const Route: ReturnType<typeof createBrowserRouter> = createBrowserRouter([
   {
@@ -63,6 +64,7 @@ const Route: ReturnType<typeof createBrowserRouter> = createBrowserRouter([
       { path: listedParamAdmin.series, element: <Series /> },
       { path: listedParamAdmin.cards, element: <Cards /> },
       { path: listedParamAdmin.cardsDetail, element: <CardDetail /> },
+      { path: listedParamAdmin.user, element: <User /> },
     ],
   },
 

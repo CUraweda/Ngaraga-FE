@@ -1,21 +1,23 @@
 import { useEffect } from "react";
 import TiltedCard from "../ui/TiledCard";
 import CardListStore from "@/store/cardList.store";
+import userStore from "@/store/user.store";
 
-const cardList = (id: any) => {
+const cardList = () => {
   const { getCardList, cardsList } = CardListStore();
+  const { user } = userStore();
 
   useEffect(() => {
     const CardList = async () => {
-        const idUser = id.id ? id.id : 'Razdan12'
-      if (idUser) {
-        const payload = `limit=1000&where=linkedUser:${idUser}`;
+      if (user) {
+        const payload = `limit=1000&where=linkedUser:${user.id}`;
         await getCardList(payload);
       }
     };
     CardList();
-  }, [id]);
+  }, [user]);
 
+  
   return (
     <div className="flex flex-wrap gap-2 w-full justify-start items-start ">
       {cardsList?.items?.map((card: any) => (
@@ -33,9 +35,7 @@ const cardList = (id: any) => {
           showTooltip={false}
           displayOverlayContent={false}
           overlayContent={
-            <div className="flex items-center justify-between h-full px-4 w-full">
-              
-            </div>
+            <div className="flex items-center justify-between h-full px-4 w-full"></div>
           }
         />
       ))}
