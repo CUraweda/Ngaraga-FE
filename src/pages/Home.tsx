@@ -4,7 +4,6 @@ import NewsletterSubscription from "@/components/LandingPage/NewsletterSubscript
 import TopCollector from "@/components/LandingPage/TopCollector";
 import TrendingCard from "@/components/LandingPage/TrendingCard";
 import Works from "@/components/LandingPage/Works";
-import React from "react";
 
 const Home = () => {
   return (
@@ -13,7 +12,7 @@ const Home = () => {
         <Hero />
       </div>
       
-      <div className="mt-30 ">
+      <div className="">
         <TrendingCard />
       </div>
       <div className="">

@@ -36,8 +36,16 @@ const Register = () => {
           .string()
           .required("email required")
           .email("email invalid format"),
-        password: yup.string().required("password required"),
-        confirm_password: yup.string().required("confirm password required"),
+          password: yup
+          .string()
+          .required("Password Required")
+          .min(8, "Password must be at least 8 characters")
+          .max(10, "Password must be at most 10 characters"),
+        confirm_password: yup
+          .string() 
+          .required("Confirm Password Required")
+          .oneOf([yup.ref("password")], "Password and Confirm Password must match")
+          .max(10, "Password must be at most 10 characters"),
         name: yup.string().required("name required"),
       })
     ),

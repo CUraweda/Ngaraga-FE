@@ -1,4 +1,3 @@
-import { m } from "framer-motion";
 
 export const listedParam = {
   home: "/",
@@ -7,6 +6,7 @@ export const listedParam = {
   market: "/market",
   profile: "/profile",
   detailCard: "/market/detail-card",
+  rankedCollectors: "/ranked-collectors",
 };
 
 export const listedParamAdmin = {
@@ -17,4 +17,5 @@ export const listedParamAdmin = {
   cards: "/admin/collections/cards",
   cardsDetail: "/admin/collections/card-detail",
   user: "/admin/user",
+  setting: "/admin/setting",
 };

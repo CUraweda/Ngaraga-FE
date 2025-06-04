@@ -5,18 +5,23 @@ import Swal from "sweetalert2";
 import { claimNormalCard, deleteCard, getAll, getById, updateCard } from "@/middleware/CardList";
 
 interface State {
+  loading: boolean;
   cardsList: any | null;
   cardListItem: any | null;
+  isClaimed: boolean;
   getCardList: (payload: string) => Promise<void>;
   deleteCardList: (id: string) => Promise<void>;
   getOneCardList: (id: string) => Promise<void>;
   updateCardList: (id: string, payload: any) => Promise<void>;
   claimNormalCard: (id: string) => Promise<void>;
+  resetClaimed: () => void;
 }
 
 const CardListStore = create<State>((set) => ({
   cardsList: null,
   cardListItem: null,
+  isClaimed: false,
+  loading: false,
 
   getCardList: async (payload) => {
     const { data } = await getAll(payload);
@@ -93,17 +98,27 @@ const CardListStore = create<State>((set) => ({
   },
 
   claimNormalCard: async (id) => {
+    set({ loading: true });
     try {
       const { data } = await claimNormalCard(id);
-      // const { data: dataCard } = await getById(data.cardId);
-      // set({ cardListItem: dataCard });
+      const { data: dataCard } = await getById(data.cardId);
+      set({ cardListItem: dataCard });
+      set({ isClaimed: true });
     } catch (error) {
+     
       Swal.fire({
         icon: "error",
         title: "Oops...",
         text: getErrorMessage(error, "failed. Please try again."),
       });
+    } finally {
+      set({ loading: false });
     }
+  },
+
+  resetClaimed: () => {
+    set({ isClaimed: false });
+    set({ cardListItem: null });
   },
 }));
 

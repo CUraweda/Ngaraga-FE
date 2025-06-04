@@ -25,13 +25,13 @@ const Series = () => {
     updateSeries,
   } = SeriesStore();
   const [currentPage, setCurrentPage] = useState(1);
-  const [search, setSearch] = useState("");
+  // const [search, setSearch] = useState("");
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [totalPages, setTotalPages] = useState(0);
   const [edit, setEdit] = useState(false);
 
   const fetchData = async () => {
-    const payload = `limit=${itemsPerPage}&page=${currentPage}&search=name:${search}`;
+    const payload = `limit=${itemsPerPage}&page=${currentPage}`;
     await getSeries(payload);
   };
 
@@ -54,7 +54,7 @@ const Series = () => {
 
   useEffect(() => {
     fetchData();
-  }, [currentPage, itemsPerPage, search]);
+  }, [currentPage, itemsPerPage]);
 
   useEffect(() => {
     if (series) {

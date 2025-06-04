@@ -12,6 +12,7 @@ import { listedParam } from "@/constant/listed.param";
 import { useNavigate } from "react-router-dom";
 import { useRef } from "react";
 import { flyToCart } from "@/components/ui/FlyToCart";
+import { Meteors } from "@/components/magicui/meteors";
 
 const HomeMarket = () => {
   const { categories, getCategory } = categoryStore();
@@ -114,6 +115,7 @@ const HomeMarket = () => {
         </div>
       </div>
 
+
       <div className="w-full flex flex-wrap justify-center items-center gap-8 mx-auto mt-10">
         {cards?.items?.map((card: any, index: number) => (
           <TiltedCard
@@ -172,6 +174,7 @@ const HomeMarket = () => {
           onTotalPageItem={(total) => setItemsPerPage(total)}
         />
       </div>
+      <Meteors />
     </div>
   );
 };

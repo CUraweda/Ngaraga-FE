@@ -10,7 +10,7 @@ const Category = () => {
 
   return (
     <div>
-      <div className="container mx-auto min-h-1/6 p-5">
+      <div className="container mx-auto min-h-96 p-5">
         <div>
           <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4">
             Categories

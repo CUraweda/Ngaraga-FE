@@ -1,17 +1,17 @@
 import { useEffect } from "react";
 import TiltedCard from "../ui/TiledCard";
-import CardListStore from "@/store/cardList.store";
 import userStore from "@/store/user.store";
+import CardSpecialStore from "@/store/cardSpecial";
 
-const cardList = () => {
-  const { getCardList, cardsList } = CardListStore();
+const SpecialCard = () => {
+  const { specialCards, getAllSpecialCards } = CardSpecialStore();
   const { user } = userStore();
 
   useEffect(() => {
     const CardList = async () => {
       if (user) {
-        const payload = `limit=1000&where=linkedUser:${user.id}`;
-        await getCardList(payload);
+      
+        await getAllSpecialCards();
       }
     };
     CardList();
@@ -20,14 +20,14 @@ const cardList = () => {
   
   return (
     <div className="flex flex-wrap gap-2 w-full justify-start items-start ">
-      {cardsList?.items?.length === 0 ? (
+      {specialCards?.length === 0 ? (
         <div className="flex items-center justify-center h-full">
           <p className=" text-gray-900 dark:text-white mb-4 text-center">
           you don't have any card yet, find the card in the marketplace
           </p>
         </div>
       ) : (
-      cardsList?.items?.map((card: any) => (
+      specialCards?.map((card: any) => (
         <TiltedCard
           imageSrc={`${import.meta.env.VITE_REACT_API_URL}/api/download?path=${
             card?.card?.image
@@ -41,6 +41,7 @@ const cardList = () => {
           showMobileWarning={false}
           showTooltip={false}
           displayOverlayContent={false}
+          showSpecialBadge={card.card.isSpecial}
           overlayContent={
             <div className="flex items-center justify-between h-full px-4 w-full"></div>
           }
@@ -51,4 +52,4 @@ const cardList = () => {
   );
 };
 
-export default cardList;
+export default SpecialCard;

@@ -130,6 +130,7 @@ const CardDetail = () => {
             showMobileWarning={false}
             showTooltip={false}
             displayOverlayContent={false}
+            showSpecialBadge={cardItem?.isSpecial}
             overlayContent={
               <div className="flex items-center justify-between h-full px-4 w-full"></div>
             }
@@ -183,24 +184,24 @@ const CardDetail = () => {
           <div className="w-1/2 flex-col flex gap-2">
             <div className="w-full border-l-10 border-amber-300 min-h-32 p-3 shadow-md rounded-md flex flex-col gap-5">
               <span className="text-2xl font-bold text-amber-500">
-                Stock
+                {cardItem?.isSpecial ? "Max Redeem" : "Stock"}
               </span>
               <div>
                 <span className="text-5xl font-bold">
                   {cardItem?.stock}
                 </span>
-                <p>Card</p>
+                <p>{cardItem?.isSpecial ? "User" : "Card"}</p>
               </div>
             </div>
             <div className="w-full border-l-10 border-green-300 min-h-32 p-3 shadow-md rounded-md flex flex-col gap-5">
               <span className="text-2xl font-bold text-green-500">
-                Card has been linked to user
+                {cardItem?.isSpecial ? "Total Redeem" : "Linked to User"}
               </span>
               <div>
                 <span className="text-5xl font-bold">
-                  {cardItem?.totalLinkedCardLists}
+                  {cardItem?.isSpecial ? cardItem?.totalSpecialUsers : cardItem?.totalLinkedCardLists}
                 </span>
-                <p>Card</p>
+                <p>{cardItem?.isSpecial ? "User" : "Card"}</p>
               </div>
             </div>
           </div>

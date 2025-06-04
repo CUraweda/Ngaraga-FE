@@ -7,13 +7,13 @@ export const sidebarList = [
     icon: '<BsFillHouseFill />',
     subLabel: [],
   },
-  {
-    label: 'Order',
-    path: '',
-    icon: '<CiShoppingBasket />',
-    subLabel: [],
-    permission: []
-  },
+  // {
+  //   label: 'Order',
+  //   path: '',
+  //   icon: '<CiShoppingBasket />',
+  //   subLabel: [],
+  //   permission: []
+  // },
   {
     label: 'Collection',
     path: '',
@@ -45,10 +45,17 @@ export const sidebarList = [
     permission: []
   },
  
+  // {
+  //   label: 'Event',
+  //   path: '',
+  //   icon: '<CiCalendar />',   
+  //   subLabel: [],
+  //   permission: []
+  // },
   {
-    label: 'Event',
-    path: '',
-    icon: '<CiCalendar />',   
+    label: 'Setting',
+    path: listedParamAdmin.setting,
+    icon: '<FaGear />',   
     subLabel: [],
     permission: []
   },
@@ -59,13 +66,13 @@ export const sidebarList = [
     subLabel: [],
     permission: []
   },
-  {
-    label: 'Subcription',
-    path: '',
-    icon: '<SiAmazonsimpleemailservice />',   
-    subLabel: [],
-    permission: []
-  },
+  // {
+  //   label: 'Subcription',
+  //   path: '',
+  //   icon: '<SiAmazonsimpleemailservice />',   
+  //   subLabel: [],
+  //   permission: []
+  // },
  
  
 ];

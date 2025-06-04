@@ -16,6 +16,8 @@ import ProtectedLayout from "./ProtectedLayout";
 import CardDetail from "@/pages/admin/Collections/CardDetail";
 import DetailCard from "@/pages/user/DetailCard";
 import User from "@/pages/admin/User";
+import RankedCollectors from "@/pages/RankedCollectors";
+import SettingPage from "@/pages/admin/SettingPage";
 
 const Route: ReturnType<typeof createBrowserRouter> = createBrowserRouter([
   {
@@ -37,6 +39,7 @@ const Route: ReturnType<typeof createBrowserRouter> = createBrowserRouter([
       { path: listedParam.home, element: <Home /> },
       { path: listedParam.market, element: <HomeMarket /> },
       { path: listedParam.detailCard, element: <DetailCard /> },
+      { path: listedParam.rankedCollectors, element: <RankedCollectors /> },
     ],
   },
   {
@@ -65,6 +68,7 @@ const Route: ReturnType<typeof createBrowserRouter> = createBrowserRouter([
       { path: listedParamAdmin.cards, element: <Cards /> },
       { path: listedParamAdmin.cardsDetail, element: <CardDetail /> },
       { path: listedParamAdmin.user, element: <User /> },
+      { path: listedParamAdmin.setting, element: <SettingPage /> },
     ],
   },
 

@@ -1,7 +1,6 @@
 import NavbarHome from "../NavbarHome";
 import { Outlet } from "react-router-dom";
 import FooterHome from "../FooterHome";
-import Squares from "../ui/Canvas";
 
 const LayoutHome = () => {
   return (

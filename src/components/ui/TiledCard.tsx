@@ -45,7 +45,7 @@ const TiltedCard = forwardRef<TiltedCardHandle, TiltedCardProps>(
     overlayContent = null,
     displayOverlayContent = true,
     onClick,
-    onAddToCart,
+
   }, ref) => {
     const containerRef = useRef<HTMLDivElement | null>(null);
     const imgRef = useRef<HTMLImageElement | null>(null);
@@ -104,7 +104,7 @@ const TiltedCard = forwardRef<TiltedCardHandle, TiltedCardProps>(
     return (
       <figure
         ref={containerRef}
-        className="relative w-full h-full [perspective:1000px] flex flex-col items-center justify-center hover:z-10 hover:shadow-2xl cursor-pointer"
+        className="relative w-full h-full [perspective:1000px] flex flex-col items-center justify-center hover:z-10  cursor-pointer"
         style={{
           width: "100%",
           maxWidth: containerWidth,
@@ -148,7 +148,7 @@ const TiltedCard = forwardRef<TiltedCardHandle, TiltedCardProps>(
             src={imageSrc}
             alt={altText}
             onClick={onClick}
-            className="absolute top-0 left-0 w-full h-full object-cover rounded-[15px] will-change-transform [transform:translateZ(0)]"
+            className="absolute top-0 left-0 w-full h-full object-cover rounded-[15px] will-change-transform [transform:translateZ(0)] hover:shadow-2xl"
           />
 
           {displayOverlayContent && overlayContent && (

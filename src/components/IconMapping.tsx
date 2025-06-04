@@ -6,7 +6,6 @@ import { GoPeople, } from "react-icons/go";
 import { SiAmazonsimpleemailservice } from "react-icons/si"
 import { AiOutlineShop } from "react-icons/ai";
 import React from "react";
-import { RiCoupon2Line } from "react-icons/ri";
 // tambahkan import untuk ikon lainnya di sini
 
 export const iconMapping: { [key: string]: React.ReactElement } = {

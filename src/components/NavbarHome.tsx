@@ -96,16 +96,16 @@ const NavbarHome = () => {
                   <a>Marketplace</a>
                 </li>
               </Link>
-              <Link to={listedParam.home}>
+              <Link to={listedParam.rankedCollectors}>
                 <li>
                   <a>Top Collector</a>
                 </li>
               </Link>
-              <Link to={listedParam.home}>
+              {/* <Link to={listedParam.home}>
                 <li>
                   <a>Event</a>
                 </li>
-              </Link>
+              </Link> */}
             </ul>
           </div>
           <a className="">
@@ -124,16 +124,16 @@ const NavbarHome = () => {
                 <a>Marketplace</a>
               </li>
             </Link>
-            <Link to={listedParam.home}>
+            <Link to={listedParam.rankedCollectors}>
               <li>
                 <a>Top Collector</a>
               </li>
             </Link>
-            <Link to={listedParam.home}>
+            {/* <Link to={listedParam.home}>
               <li>
                 <a>Event</a>
               </li>
-            </Link>
+            </Link> */}
           </ul>
         </div>
         <div className="navbar-end flex gap-2">
@@ -174,7 +174,13 @@ const NavbarHome = () => {
                   <div className="w-10 rounded-full">
                     <img
                       alt="Tailwind CSS Navbar component"
-                      src="https://img.daisyui.com/images/stock/photo-1534528741775-53994a69daeb.webp"
+                      src={
+                        user?.profilePic
+                          ? `${
+                              import.meta.env.VITE_REACT_API_URL
+                            }/api/download?path=${user?.profilePic}`
+                          : "https://imgs.search.brave.com/XmWo89rrDH7sV2NOJzKw5vMt4FrPmtc6_nK7g0VHrMw/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly90My5m/dGNkbi5uZXQvanBn/LzA1LzYwLzI2LzA4/LzM2MF9GXzU2MDI2/MDg4MF9PMVYzUW0y/Y05PNUhXak42Nm1C/aDJOcmxQSE5IT1V4/Vy5qcGc"
+                      }
                     />
                   </div>
                 </div>

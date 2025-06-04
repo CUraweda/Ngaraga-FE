@@ -9,6 +9,10 @@ export interface User {
   role: string;
   profilePic: string
   bio: string;
+  _count: {
+    cardLists: number;
+    cardSpecialUsers: number;
+  };
 }
 
 export interface LoginData {
