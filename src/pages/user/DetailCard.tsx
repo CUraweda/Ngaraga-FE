@@ -14,17 +14,14 @@ import Pagination from "@/components/ui/Pagination";
 
 const DetailCard = () => {
   const { cardItem, getOneCard, cards, getCard } = CardStore();
-  const {
-    checkCardSpecial,
-    specialCard,
-    claimCardSpecial,
-    isClaimed,
-  } = CardSpecialStore();
+  const { checkCardSpecial, specialCard, claimCardSpecial, isClaimed } =
+    CardSpecialStore();
   const { addToCart } = CartItemStore();
   const [searchParams] = useSearchParams();
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(12);
   const [totalPages, setTotalPages] = useState(0);
+  const [special, setSpecial] = useState(false);
 
   const navigate = useNavigate();
 
@@ -48,6 +45,21 @@ const DetailCard = () => {
   useEffect(() => {
     fetchData();
   }, [id]);
+
+  useEffect(() => {
+    if (type === "special") {
+      if (
+        specialCard?.missingCards?.length > 0 &&
+        specialCard?.ownedCards?.length > 0
+      ) {
+        setSpecial(true);
+      } else {
+        setSpecial(false);
+      }
+    } else {
+      setSpecial(false);
+    }
+  }, [specialCard, type]);
 
   useEffect(() => {
     fetchCard();
@@ -237,7 +249,7 @@ const DetailCard = () => {
                 </div>
               </div>
             )}
-            {type === "special" && (
+            {special && (
               <div className="flex w-full justify-start mt-5">
                 <button
                   className={`btn btn-primary ${

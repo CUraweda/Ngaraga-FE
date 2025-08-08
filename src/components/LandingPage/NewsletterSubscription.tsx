@@ -89,4 +89,5 @@ const NewsletterSubscription = () => {
   );
 };
 
+
 export default NewsletterSubscription;
