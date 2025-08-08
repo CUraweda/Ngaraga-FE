@@ -1,40 +1,58 @@
 import { createBrowserRouter } from "react-router-dom";
 import { listedParam, listedParamAdmin } from "./listed.param";
-import Login from "@/pages/Login";
-import Register from "@/pages/user/Register";
-import Home from "@/pages/Home";
-import LayoutHome from "@/components/Layout/LayoutHome";
-import HomeMarket from "@/pages/user/HomeMarket";
-import ProfileUser from "@/pages/user/ProfileUser";
-import LayoutAdmin from "@/components/Layout/LayoutAdmin";
-import Dashboard from "@/pages/admin/Dashboard";
-import Master from "@/pages/admin/Collections/Master";
-import Category from "@/pages/admin/Collections/Category";
-import Series from "@/pages/admin/Collections/Series";
-import Cards from "@/pages/admin/Collections/Cards";
 import ProtectedLayout from "./ProtectedLayout";
-import CardDetail from "@/pages/admin/Collections/CardDetail";
-import DetailCard from "@/pages/user/DetailCard";
-import User from "@/pages/admin/User";
-import RankedCollectors from "@/pages/RankedCollectors";
-import SettingPage from "@/pages/admin/SettingPage";
+import { lazy, Suspense } from "react";
+
+const Login = lazy(() => import("@/pages/Login"));
+const Register = lazy(() => import("@/pages/user/Register"));
+const Home = lazy(() => import("@/pages/Home"));
+const LayoutHome = lazy(() => import("@/components/Layout/LayoutHome"));
+const HomeMarket = lazy(() => import("@/pages/user/HomeMarket"));
+const ProfileUser = lazy(() => import("@/pages/user/ProfileUser"));
+const LayoutAdmin = lazy(() => import("@/components/Layout/LayoutAdmin"));
+const Dashboard = lazy(() => import("@/pages/admin/Dashboard"));
+const Master = lazy(() => import("@/pages/admin/Collections/Master"));
+const Category = lazy(() => import("@/pages/admin/Collections/Category"));
+const Series = lazy(() => import("@/pages/admin/Collections/Series"));
+const Cards = lazy(() => import("@/pages/admin/Collections/Cards"));
+const CardDetail = lazy(() => import("@/pages/admin/Collections/CardDetail"));
+const DetailCard = lazy(() => import("@/pages/user/DetailCard"));
+const User = lazy(() => import("@/pages/admin/User"));
+const RankedCollectors = lazy(() => import("@/pages/RankedCollectors"));
+const SettingPage = lazy(() => import("@/pages/admin/SettingPage"));
 
 const Route: ReturnType<typeof createBrowserRouter> = createBrowserRouter([
   {
     path: "*",
-    element: <Home />,
+    element: (
+      <Suspense fallback={<div>Loading...</div>}>
+        <Home />
+      </Suspense>
+    ),
   },
   {
     path: listedParam.signin,
-    element: <Login />,
+    element: (
+      <Suspense fallback={<div>Loading...</div>}>
+        <Login />
+      </Suspense>
+    ),
   },
   {
     path: listedParam.signup,
-    element: <Register />,
+    element: (
+      <Suspense fallback={<div>Loading...</div>}>
+        <Register />
+      </Suspense>
+    ),
   },
   {
     path: listedParam.home,
-    element: <LayoutHome />,
+    element: (
+      <Suspense fallback={<div>Loading...</div>}>
+        <LayoutHome />
+      </Suspense>
+    ),
     children: [
       { path: listedParam.home, element: <Home /> },
       { path: listedParam.market, element: <HomeMarket /> },
@@ -46,18 +64,20 @@ const Route: ReturnType<typeof createBrowserRouter> = createBrowserRouter([
     path: listedParam.home,
     element: (
       <ProtectedLayout>
-        <LayoutHome />
+        <Suspense fallback={<div>Loading...</div>}>
+          <LayoutHome />
+        </Suspense>
       </ProtectedLayout>
     ),
-    children: [
-      { path: listedParam.profile, element: <ProfileUser /> },
-    ],
+    children: [{ path: listedParam.profile, element: <ProfileUser /> }],
   },
   {
     path: listedParamAdmin.home,
     element: (
       <ProtectedLayout>
-        <LayoutAdmin />
+        <Suspense fallback={<div>Loading...</div>}>
+          <LayoutAdmin />
+        </Suspense>
       </ProtectedLayout>
     ),
     children: [
@@ -71,7 +91,6 @@ const Route: ReturnType<typeof createBrowserRouter> = createBrowserRouter([
       { path: listedParamAdmin.setting, element: <SettingPage /> },
     ],
   },
-
 ]);
 
 export default Route;
