@@ -15,6 +15,7 @@ const Hero = () => {
     console.log("Animation completed!");
   };
 
+  
   useEffect(() => {
     getAllHomePage("");
   }, []);
