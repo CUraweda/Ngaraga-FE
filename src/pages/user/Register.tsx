@@ -1,4 +1,3 @@
-
 import { FaArrowLeftLong } from "react-icons/fa6";
 
 import { useNavigate } from "react-router-dom";
@@ -24,6 +23,7 @@ const Register = () => {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const { register } = useAuthStore();
+ 
   const {
     register: registerForm,
     handleSubmit,
@@ -36,21 +36,23 @@ const Register = () => {
           .string()
           .required("email required")
           .email("email invalid format"),
-          password: yup
+        password: yup
           .string()
           .required("Password Required")
           .min(8, "Password must be at least 8 characters")
           .max(10, "Password must be at most 10 characters"),
         confirm_password: yup
-          .string() 
+          .string()
           .required("Confirm Password Required")
-          .oneOf([yup.ref("password")], "Password and Confirm Password must match")
+          .oneOf(
+            [yup.ref("password")],
+            "Password and Confirm Password must match"
+          )
           .max(10, "Password must be at most 10 characters"),
         name: yup.string().required("name required"),
       })
     ),
   });
-
 
   const onSubmit = async (formData: SignIn) => {
     await register(formData).then(() => {
@@ -59,7 +61,7 @@ const Register = () => {
         icon: "success",
         title: "Register Success",
         showConfirmButton: false,
-        timer: 1500
+        timer: 1500,
       });
       navigate("/login");
     });
@@ -85,7 +87,11 @@ const Register = () => {
               <p>
                 Welcome! enter your details and start creating, collecting Cards
               </p>
-              <form action="" className="flex flex-col gap-3" onSubmit={handleSubmit(onSubmit)}>
+              <form
+                action=""
+                className="flex flex-col gap-3"
+                onSubmit={handleSubmit(onSubmit)}
+              >
                 <Input
                   type="text"
                   className="grow"
