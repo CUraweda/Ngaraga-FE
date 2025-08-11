@@ -1,4 +1,3 @@
-
 export const listedParam = {
   home: "/",
   signin: "/login",
@@ -7,6 +6,9 @@ export const listedParam = {
   profile: "/profile",
   detailCard: "/market/detail-card",
   rankedCollectors: "/ranked-collectors",
+  myCart: "/my-cart",
+  checkout: "/checkout",
+  OrderSuccess: "/order-success",
 };
 
 export const listedParamAdmin = {
