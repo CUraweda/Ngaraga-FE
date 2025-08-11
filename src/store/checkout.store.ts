@@ -43,7 +43,7 @@ interface CheckoutState {
   resetCheckout: () => void;
 }
 
-export const useCheckoutStore = create<CheckoutState>((set, get) => ({
+export const useCheckoutStore = create<CheckoutState>((set, ) => ({
   // Initial state
   currentStep: 1,
   customerType: "existing",

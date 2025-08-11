@@ -313,50 +313,6 @@ const Checkout = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-8">
-              <div className="text-2xl font-bold">NGARAGA</div>
-              <nav className="flex space-x-6">
-                <a href="#" className="text-gray-600 hover:text-gray-900">
-                  Marketplace
-                </a>
-                <a href="#" className="text-gray-600 hover:text-gray-900">
-                  Rankings
-                </a>
-                <a href="#" className="text-gray-600 hover:text-gray-900">
-                  Events
-                </a>
-              </nav>
-            </div>
-            <div className="flex items-center space-x-4">
-              <button className="p-2">
-                <svg
-                  className="w-6 h-6"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-1.68 4.32M7 13h10M9 19a2 2 0 100-4 2 2 0 000 4zm8 0a2 2 0 100-4 2 2 0 000 4z"
-                  />
-                </svg>
-              </button>
-              <button className="px-4 py-2 border border-gray-300 rounded-md text-sm hover:bg-gray-50">
-                Sign In
-              </button>
-              <button className="px-4 py-2 bg-yellow-500 text-white rounded-md text-sm hover:bg-yellow-600">
-                Sign Up
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 py-8">
