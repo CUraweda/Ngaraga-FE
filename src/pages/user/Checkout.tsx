@@ -10,6 +10,7 @@ import { OrderSummary } from "@/components/checkout/OrderSummary";
 import { CheckoutSteps } from "@/components/checkout/CheckoutSteps";
 import { useCheckoutStore } from "@/store/checkout.store";
 import { toast } from "react-hot-toast";
+import { PickupOptions } from "@/components/checkout/PickupOptions";
 
 export interface CheckoutStep {
   number: number;
@@ -73,6 +74,8 @@ const Checkout = () => {
     errors,
     setErrors,
     clearErrors,
+    selectedPickupTime,
+    setSelectedPickupTime,
   } = useCheckoutStore();
 
   // Initialize with mock data
@@ -196,20 +199,36 @@ const Checkout = () => {
     clearErrors();
     const newErrors: Record<string, string> = {};
 
+    // Only validate customer data for new customers
     if (customerType === "new") {
       if (!customerData.name.trim()) newErrors.name = "Name is required";
       if (!customerData.email.trim()) newErrors.email = "Email is required";
       if (!customerData.phone.trim()) newErrors.phone = "Phone is required";
-      if (!customerData.addressDetails.trim())
-        newErrors.addressDetails = "Address details is required";
-      if (!customerData.postalCode.trim())
-        newErrors.postalCode = "Postal code is required";
+
+      // Only validate address for delivery mode
+      if (deliveryMethod === "delivery") {
+        if (!customerData.addressDetails.trim())
+          newErrors.addressDetails = "Address details is required";
+        if (!customerData.postalCode.trim())
+          newErrors.postalCode = "Postal code is required";
+      }
     } else {
-      if (!selectedAddress) newErrors.address = "Please select an address";
+      // Only validate address selection for delivery mode
+      if (deliveryMethod === "delivery" && !selectedAddress) {
+        newErrors.address = "Please select an address";
+      }
     }
 
-    if (!selectedDelivery)
-      newErrors.delivery = "Please select a delivery option";
+    // Add pickup time validation
+    if (deliveryMethod === "pickup" && !selectedPickupTime) {
+      newErrors.pickupTime = "Please select a pickup time";
+    }
+
+    if (deliveryMethod === "delivery") {
+      if (!selectedDelivery)
+        newErrors.delivery = "Please select a delivery option";
+    }
+
     if (!selectedPayment) newErrors.payment = "Please select a payment method";
 
     if (Object.keys(newErrors).length > 0) {
@@ -259,9 +278,18 @@ const Checkout = () => {
             total,
             paymentMethod: paymentOptions.find((p) => p.id === selectedPayment)
               ?.name,
-            deliveryMethod: deliveryOptions.find(
-              (d) => d.id === selectedDelivery
-            )?.name,
+            deliveryMethod: deliveryMethod,
+            deliveryOption:
+              deliveryMethod === "delivery"
+                ? deliveryOptions.find((d) => d.id === selectedDelivery)?.name
+                : "Pickup",
+            pickupTime: deliveryMethod === "pickup" ? selectedPickupTime : null,
+            pickupLocation:
+              deliveryMethod === "pickup" ? "Ngaraga by Dolanan" : null,
+            deliveryAddress:
+              deliveryMethod === "delivery" && selectedAddress
+                ? selectedAddress.address
+                : null,
           },
         });
       }, 1500);
@@ -313,7 +341,6 @@ const Checkout = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 py-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-8">Checkout</h1>
@@ -409,30 +436,115 @@ const Checkout = () => {
                   </div>
                 </div>
 
-                {customerType === "existing" ? (
-                  <AddressManager
-                    addresses={addresses}
-                    selectedAddress={selectedAddress}
-                    onAddressSelect={handleAddressSelect}
-                    onAddressEdit={handleAddressEdit}
-                    onAddressDelete={handleAddressDelete}
-                    onAddNewAddress={handleAddNewAddress}
-                    error={errors.address}
-                  />
-                ) : (
-                  <CheckoutForm
-                    customerData={customerData}
-                    onCustomerDataChange={setCustomerData}
-                    errors={errors}
-                  />
+                {/* Address Section - Only show for delivery mode */}
+                {deliveryMethod === "delivery" &&
+                  (customerType === "existing" ? (
+                    <AddressManager
+                      addresses={addresses}
+                      selectedAddress={selectedAddress}
+                      onAddressSelect={handleAddressSelect}
+                      onAddressEdit={handleAddressEdit}
+                      onAddressDelete={handleAddressDelete}
+                      onAddNewAddress={handleAddNewAddress}
+                      error={errors.address}
+                    />
+                  ) : (
+                    <CheckoutForm
+                      customerData={customerData}
+                      onCustomerDataChange={setCustomerData}
+                      errors={errors}
+                      deliveryMethod={deliveryMethod}
+                    />
+                  ))}
+
+                {/* Customer Info for Pickup - Only show basic info for pickup mode */}
+                {deliveryMethod === "pickup" && customerType === "new" && (
+                  <div className="mb-8">
+                    <h3 className="text-lg font-semibold mb-4">
+                      Customer Information
+                    </h3>
+                    <div className="space-y-4">
+                      <div>
+                        <input
+                          type="text"
+                          placeholder="Full Name"
+                          value={customerData.name}
+                          onChange={(e) =>
+                            setCustomerData({
+                              ...customerData,
+                              name: e.target.value,
+                            })
+                          }
+                          className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 ${
+                            errors.name ? "border-red-500" : "border-gray-300"
+                          }`}
+                        />
+                        {errors.name && (
+                          <p className="text-red-500 text-sm mt-1">
+                            {errors.name}
+                          </p>
+                        )}
+                      </div>
+                      <div>
+                        <input
+                          type="email"
+                          placeholder="Email"
+                          value={customerData.email}
+                          onChange={(e) =>
+                            setCustomerData({
+                              ...customerData,
+                              email: e.target.value,
+                            })
+                          }
+                          className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 ${
+                            errors.email ? "border-red-500" : "border-gray-300"
+                          }`}
+                        />
+                        {errors.email && (
+                          <p className="text-red-500 text-sm mt-1">
+                            {errors.email}
+                          </p>
+                        )}
+                      </div>
+                      <div>
+                        <input
+                          type="tel"
+                          placeholder="Phone Number"
+                          value={customerData.phone}
+                          onChange={(e) =>
+                            setCustomerData({
+                              ...customerData,
+                              phone: e.target.value,
+                            })
+                          }
+                          className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 ${
+                            errors.phone ? "border-red-500" : "border-gray-300"
+                          }`}
+                        />
+                        {errors.phone && (
+                          <p className="text-red-500 text-sm mt-1">
+                            {errors.phone}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
                 )}
 
-                <DeliveryOptions
-                  options={deliveryOptions}
-                  selectedDelivery={selectedDelivery}
-                  onDeliverySelect={setSelectedDelivery}
-                  error={errors.delivery}
-                />
+                {deliveryMethod === "delivery" ? (
+                  <DeliveryOptions
+                    options={deliveryOptions}
+                    selectedDelivery={selectedDelivery}
+                    onDeliverySelect={setSelectedDelivery}
+                    error={errors.delivery}
+                  />
+                ) : (
+                  <PickupOptions
+                    selectedTime={selectedPickupTime}
+                    onTimeSelect={setSelectedPickupTime}
+                    error={errors.pickupTime}
+                  />
+                )}
 
                 <PaymentOptions
                   options={paymentOptions}
@@ -463,22 +575,51 @@ const Checkout = () => {
                       }
                     </span>
                   </div>
-                  <div className="flex justify-between">
-                    <span>Selected Delivery:</span>
-                    <span className="font-medium">
-                      {
-                        deliveryOptions.find((d) => d.id === selectedDelivery)
-                          ?.name
-                      }
-                    </span>
-                  </div>
-                  {customerType === "existing" && selectedAddress && (
-                    <div className="flex justify-between">
-                      <span>Delivery Address:</span>
-                      <span className="font-medium text-right max-w-xs">
-                        {selectedAddress.address}
-                      </span>
-                    </div>
+
+                  {deliveryMethod === "delivery" ? (
+                    <>
+                      <div className="flex justify-between">
+                        <span>Selected Delivery:</span>
+                        <span className="font-medium">
+                          {
+                            deliveryOptions.find(
+                              (d) => d.id === selectedDelivery
+                            )?.name
+                          }
+                        </span>
+                      </div>
+                      {customerType === "existing" && selectedAddress && (
+                        <div className="flex justify-between">
+                          <span>Delivery Address:</span>
+                          <span className="font-medium text-right max-w-xs">
+                            {selectedAddress.address}
+                          </span>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <div className="flex justify-between">
+                        <span>Pickup Time:</span>
+                        <span className="font-medium">
+                          {selectedPickupTime}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Pickup Location:</span>
+                        <span className="font-medium text-right max-w-xs">
+                          Ngaraga by Dolanan
+                        </span>
+                      </div>
+                      {customerType === "existing" && selectedAddress && (
+                        <div className="flex justify-between">
+                          <span>Customer:</span>
+                          <span className="font-medium">
+                            {selectedAddress.name}
+                          </span>
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
 
@@ -557,6 +698,7 @@ const Checkout = () => {
               currentStep={currentStep}
               onContinueToPayment={handleContinueToPayment}
               isLoading={isLoading}
+              deliveryMethod={deliveryMethod ?? "delivery"}
             />
           </div>
         </div>

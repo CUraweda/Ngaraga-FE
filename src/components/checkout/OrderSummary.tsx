@@ -10,8 +10,9 @@ interface OrderSummaryProps {
   vat: number;
   total: number;
   currentStep: number;
-  onContinueToPayment: () => void;
+  onContinueToPayment: () => Promise<void>;
   isLoading: boolean;
+  deliveryMethod: "delivery" | "pickup"; // Add this prop
 }
 
 export const OrderSummary = ({
@@ -24,6 +25,7 @@ export const OrderSummary = ({
   currentStep,
   onContinueToPayment,
   isLoading,
+  deliveryMethod,
 }: OrderSummaryProps) => {
   return (
     <div className="bg-white rounded-lg shadow-sm p-6 sticky top-4">
@@ -62,10 +64,12 @@ export const OrderSummary = ({
           <span className="text-gray-600">Subtotal</span>
           <span className="font-medium">{formatRupiah(subtotal)}</span>
         </div>
-        <div className="flex justify-between text-sm">
-          <span className="text-gray-600">Shipping</span>
-          <span className="font-medium">{formatRupiah(shipping)}</span>
-        </div>
+        {deliveryMethod === "delivery" && (
+          <div className="flex justify-between text-sm">
+            <span className="text-gray-600">Shipping</span>
+            <span className="font-medium">{formatRupiah(shipping)}</span>
+          </div>
+        )}
         <div className="flex justify-between text-sm">
           <span className="text-gray-600">Discount</span>
           <span className="font-medium text-red-600">

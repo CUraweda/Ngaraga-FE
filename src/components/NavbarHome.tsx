@@ -159,7 +159,7 @@ const NavbarHome = () => {
                       </div>
                     </div>
                   </PopoverTrigger>
-                  <PopoverContent className="w-96 mr-10 mt-3 border-0 rounded-xl shadow-lg p-4 bg-base-100 transition-all duration-200 ease-in-out hover:shadow-xl">
+                  <PopoverContent className="w-86 mr-9 mt-3 border-0 rounded-xl shadow-lg p-4 bg-base-100 transition-all duration-200 ease-in-out hover:shadow-xl">
                     <CartItem />
                   </PopoverContent>
                 </Popover>

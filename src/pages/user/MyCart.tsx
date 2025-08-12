@@ -1,17 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Minus, Plus, Trash2 } from "lucide-react";
+import { Minus, Plus, } from "lucide-react";
 import CartItemStore from "@/store/cartItem.store";
 import userStore from "@/store/user.store";
-import { useEffect } from "react";
 import { formatRupiah } from "@/helper/formatRupiah";
 
 const MyCart = () => {
   const navigate = useNavigate();
   const { carts, getCart, updateCart, deleteCart } = CartItemStore();
   const { user } = userStore();
+
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [selectAll, setSelectAll] = useState(false);
   const [discountCode, setDiscountCode] = useState("");
@@ -23,22 +23,17 @@ const MyCart = () => {
 
   useEffect(() => {
     fetchData();
-  }, [user]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
 
   useEffect(() => {
     if (carts?.items) {
       const allItemIds = carts.items.map((item: any) => item.id);
-      if (selectAll) {
-        setSelectedItems(allItemIds);
-      } else {
-        setSelectedItems([]);
-      }
+      setSelectedItems(selectAll ? allItemIds : []);
     }
   }, [selectAll, carts?.items]);
 
-  const handleSelectAll = () => {
-    setSelectAll(!selectAll);
-  };
+  const handleSelectAll = () => setSelectAll((v) => !v);
 
   const handleSelectItem = (itemId: string) => {
     setSelectedItems((prev) =>
@@ -48,23 +43,26 @@ const MyCart = () => {
     );
   };
 
-  const handleQuantity = (id: string, quantity: number, type: string) => {
-    const payload = {
-      quantity: type === "add" ? quantity + 1 : quantity - 1,
-    };
-    if (payload.quantity <= 0) {
-      deleteCart(id).then(() => {
-        fetchData();
-      });
+  const handleQuantity = (
+    id: string,
+    quantity: number,
+    type: "add" | "minus"
+  ) => {
+    const nextQty = type === "add" ? quantity + 1 : quantity - 1;
+    if (nextQty <= 0) {
+      deleteCart(id).then(fetchData);
       return;
     }
-    updateCart(id, payload).then(() => {
-      fetchData();
-    });
+    updateCart(id, { quantity: nextQty }).then(fetchData);
   };
 
-  const handleDelete = (id: string) => {
-    deleteCart(id).then(() => {
+  const handleDelete = (id: string) => deleteCart(id).then(fetchData);
+
+  const handleBulkDelete = () => {
+    if (!selectedItems.length) return;
+    Promise.all(selectedItems.map((id) => deleteCart(id))).then(() => {
+      setSelectedItems([]);
+      setSelectAll(false);
       fetchData();
     });
   };
@@ -73,9 +71,7 @@ const MyCart = () => {
     const selectedCartItems = carts?.items?.filter((item: any) =>
       selectedItems.includes(item.id)
     );
-
     if (selectedCartItems?.length > 0) {
-      // Navigate to checkout with selected items
       navigate("/checkout", {
         state: {
           selectedItems: selectedCartItems,
@@ -100,8 +96,6 @@ const MyCart = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-
-      {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="mb-6">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">My Cart</h1>
@@ -115,8 +109,8 @@ const MyCart = () => {
           {/* Cart Items */}
           <div className="lg:col-span-2">
             <div className="bg-white rounded-lg shadow-sm">
-              {/* Select All Header */}
-              <div className="p-4 border-b border-gray-200 flex items-center justify-between">
+              {/* Header */}
+              <div className="p-4 border-b border-gray-200 flex items-center justify-between flex-wrap gap-3">
                 <label className="flex items-center space-x-3">
                   <input
                     type="checkbox"
@@ -128,53 +122,78 @@ const MyCart = () => {
                     Select All
                   </span>
                 </label>
-                <button className="px-4 py-2 bg-yellow-500 text-white text-sm rounded-md hover:bg-yellow-600">
-                  Delete
-                </button>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleBulkDelete}
+                    disabled={!selectedCount}
+                    className="px-4 py-2 bg-red-50 text-red-600 text-sm rounded-md hover:bg-red-100 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
+                  >
+                    Delete Selected
+                  </button>
+                </div>
               </div>
 
-              {/* Cart Items List */}
+              {/* Items */}
               <div className="divide-y divide-gray-200">
-                {carts?.items?.map((item: any, index: number) => (
-                  <div key={index} className="p-4">
-                    <div className="flex items-start space-x-4">
-                      <input
-                        type="checkbox"
-                        checked={selectedItems.includes(item.id)}
-                        onChange={() => handleSelectItem(item.id)}
-                        className="w-4 h-4 text-yellow-600 border-gray-300 rounded focus:ring-yellow-500 mt-1"
-                      />
-                      <img
-                        src={`${
-                          import.meta.env.VITE_REACT_API_URL
-                        }/api/download?path=${item?.card?.image}`}
-                        alt={item?.card?.name}
-                        className="w-20 h-20 object-cover rounded-lg"
-                      />
-                      <div className="flex-1">
-                        <h3 className="text-lg font-semibold text-gray-900">
+                {!carts?.items?.length && (
+                  <div className="p-6 text-center text-gray-500">
+                    Your cart is empty.
+                  </div>
+                )}
+
+                {carts?.items?.map((item: any) => (
+                  <div key={item.id} className="p-4">
+                    {/* Satu layout konsisten (mobile/tab/desktop) */}
+                    {/* Grid 2 kolom di mobile, 3 kolom di ≥sm:
+                        - Kolom 1: Gambar (atas), Qty (bawah)
+                        - Kolom 2-3: Detail teks kanan (atas), Remove kanan (bawah)
+                    */}
+                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
+                      {/* Gambar (kolom kiri) */}
+                      <div className="relative col-span-1">
+                        {/* Checkbox absolut agar tidak menggeser layout & tidak mempengaruhi alignment detail */}
+                        <label className="absolute -top-1 -left-1 z-10 bg-white/90 rounded-md p-1 shadow-sm">
+                          <input
+                            type="checkbox"
+                            checked={selectedItems.includes(item.id)}
+                            onChange={() => handleSelectItem(item.id)}
+                            className="w-4 h-4 text-yellow-600 border-gray-300 rounded focus:ring-yellow-500 align-middle"
+                            aria-label={`Select ${item?.card?.name}`}
+                          />
+                        </label>
+
+                        <img
+                          src={`${
+                            import.meta.env.VITE_REACT_API_URL
+                          }/api/download?path=${item?.card?.image}`}
+                          alt={item?.card?.name}
+                          className="w-full h-24 sm:h-28 object-cover rounded-lg"
+                        />
+                      </div>
+
+                      {/* Detail teks kanan atas (selalu text-right & sejajar atas dengan gambar) */}
+                      <div className="col-span-1 sm:col-span-2 self-start text-right">
+                        <h3 className="text-sm sm:text-lg font-semibold text-gray-900 line-clamp-2">
                           {item?.card?.name}
                         </h3>
-                        <p className="text-sm text-gray-500 uppercase">
+                        <p className="text-[11px] sm:text-sm text-gray-500 uppercase">
                           {item?.card?.category?.name}
                         </p>
-                        <p className="text-lg font-bold text-gray-900 mt-1">
+                        <p className="text-base sm:text-lg font-bold text-gray-900 mt-1">
                           {formatRupiah(item?.card?.price)}
                         </p>
                       </div>
-                      <div className="flex items-center space-x-4">
-                        <button
-                          onClick={() => handleDelete(item?.id)}
-                          className="p-2 text-gray-400 hover:text-red-500"
-                        >
-                          <Trash2 className="w-5 h-5" />
-                        </button>
-                        <div className="flex items-center border border-gray-300 rounded-md">
+
+                      {/* Qty kiri bawah (tepat di bawah gambar) */}
+                      <div className="col-span-1 self-end">
+                        <div className="inline-flex items-center border border-gray-300 rounded-md">
                           <button
                             onClick={() =>
                               handleQuantity(item?.id, item?.quantity, "minus")
                             }
-                            className="p-2 hover:bg-gray-50"
+                            className="p-2 hover:bg-gray-50 active:scale-[0.98]"
+                            aria-label="Decrease quantity"
                           >
                             <Minus className="w-4 h-4" />
                           </button>
@@ -185,9 +204,23 @@ const MyCart = () => {
                             onClick={() =>
                               handleQuantity(item?.id, item?.quantity, "add")
                             }
-                            className="p-2 hover:bg-gray-50"
+                            className="p-2 hover:bg-gray-50 active:scale-[0.98]"
+                            aria-label="Increase quantity"
                           >
                             <Plus className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Remove kanan bawah (align kanan) */}
+                      <div className="col-span-1 sm:col-span-2 sm:col-start-3 self-end">
+                        <div className="w-full flex justify-end">
+                          <button
+                            onClick={() => handleDelete(item?.id)}
+                            className="px-3 py-2 text-sm text-red-600 bg-red-50 rounded-md hover:bg-red-100"
+                            aria-label="Remove item"
+                          >
+                            Remove
                           </button>
                         </div>
                       </div>
@@ -198,9 +231,9 @@ const MyCart = () => {
             </div>
           </div>
 
-          {/* Summary Order */}
+          {/* Summary */}
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-lg shadow-sm p-6 sticky top-4">
+            <div className="bg-white rounded-lg shadow-sm p-6 lg:sticky lg:top-4">
               <h2 className="text-xl font-semibold text-gray-900 mb-4">
                 Summary Order
               </h2>
@@ -215,7 +248,7 @@ const MyCart = () => {
               </div>
 
               <div className="mb-6">
-                <div className="flex space-x-2">
+                <div className="flex gap-2">
                   <input
                     type="text"
                     placeholder="Add discount code"
