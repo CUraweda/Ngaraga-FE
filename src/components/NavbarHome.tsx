@@ -159,7 +159,7 @@ const NavbarHome = () => {
                       </div>
                     </div>
                   </PopoverTrigger>
-                  <PopoverContent className="w-96">
+                  <PopoverContent className="w-96 mr-10 mt-3 border-0 rounded-xl shadow-lg p-4 bg-base-100 transition-all duration-200 ease-in-out hover:shadow-xl">
                     <CartItem />
                   </PopoverContent>
                 </Popover>
@@ -201,9 +201,14 @@ const NavbarHome = () => {
               </div>
             </div>
           ) : (
-            <Link to={listedParam.signin}>
-              <button className="btn btn-outline btn-primary">Sign In</button>
-            </Link>
+            <div className="flex gap-2">
+              <Link to={listedParam.signin}>
+                <button className="btn btn-outline btn-primary">Sign In</button>
+              </Link>
+              <Link to={listedParam.signup}>
+                <button className="btn btn-primary">Sign Up</button>
+              </Link>
+            </div>
           )}
         </div>
       </div>

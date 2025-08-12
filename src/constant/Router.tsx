@@ -9,6 +9,9 @@ const Home = lazy(() => import("@/pages/Home"));
 const LayoutHome = lazy(() => import("@/components/Layout/LayoutHome"));
 const HomeMarket = lazy(() => import("@/pages/user/HomeMarket"));
 const ProfileUser = lazy(() => import("@/pages/user/ProfileUser"));
+const MyCart = lazy(() => import("@/pages/user/MyCart"));
+const CheckoutUser = lazy(() => import("@/pages/user/Checkout"));
+const OrderSuccess = lazy(() => import("@/pages/user/OrderSuccess"));
 const LayoutAdmin = lazy(() => import("@/components/Layout/LayoutAdmin"));
 const Dashboard = lazy(() => import("@/pages/admin/Dashboard"));
 const Master = lazy(() => import("@/pages/admin/Collections/Master"));
@@ -58,6 +61,9 @@ const Route: ReturnType<typeof createBrowserRouter> = createBrowserRouter([
       { path: listedParam.market, element: <HomeMarket /> },
       { path: listedParam.detailCard, element: <DetailCard /> },
       { path: listedParam.rankedCollectors, element: <RankedCollectors /> },
+      { path: listedParam.myCart, element: <MyCart /> },
+      { path: listedParam.checkout, element: <CheckoutUser /> },
+      { path: listedParam.OrderSuccess, element: <OrderSuccess /> },
     ],
   },
   {
