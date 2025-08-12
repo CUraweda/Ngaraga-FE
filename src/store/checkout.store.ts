@@ -20,6 +20,10 @@ interface CheckoutState {
   selectedPayment: string;
   setSelectedPayment: (payment: string) => void;
 
+  // Pickup time
+  selectedPickupTime: string;
+  setSelectedPickupTime: (time: string) => void;
+
   // Address management
   selectedAddress: Address | null;
   setSelectedAddress: (address: Address | null) => void;
@@ -43,13 +47,14 @@ interface CheckoutState {
   resetCheckout: () => void;
 }
 
-export const useCheckoutStore = create<CheckoutState>((set, ) => ({
+export const useCheckoutStore = create<CheckoutState>((set,) => ({
   // Initial state
   currentStep: 1,
   customerType: "existing",
   deliveryMethod: "delivery",
   selectedDelivery: "anteraja",
   selectedPayment: "bca",
+  selectedPickupTime: "08:00",
   selectedAddress: null,
   addresses: [],
   customerData: {
@@ -73,6 +78,7 @@ export const useCheckoutStore = create<CheckoutState>((set, ) => ({
   setDeliveryMethod: (method) => set({ deliveryMethod: method }),
   setSelectedDelivery: (delivery) => set({ selectedDelivery: delivery }),
   setSelectedPayment: (payment) => set({ selectedPayment: payment }),
+  setSelectedPickupTime: (time) => set({ selectedPickupTime: time }),
   setSelectedAddress: (address) => set({ selectedAddress: address }),
 
   addAddress: (address) =>
@@ -110,6 +116,7 @@ export const useCheckoutStore = create<CheckoutState>((set, ) => ({
       deliveryMethod: "delivery",
       selectedDelivery: "anteraja",
       selectedPayment: "bca",
+      selectedPickupTime: "08:00",
       selectedAddress: null,
       customerData: {
         name: "",
