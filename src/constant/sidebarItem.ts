@@ -2,77 +2,74 @@ import { listedParamAdmin } from "./listed.param";
 
 export const sidebarList = [
   {
-    label: 'Dashboard',
+    label: "Dashboard",
     path: listedParamAdmin.home,
-    icon: '<BsFillHouseFill />',
+    icon: "<BsFillHouseFill />",
     subLabel: [],
   },
-  // {
-  //   label: 'Order',
-  //   path: '',
-  //   icon: '<CiShoppingBasket />',
-  //   subLabel: [],
-  //   permission: []
-  // },
   {
-    label: 'Collection',
-    path: '',
-    icon: '<CiShop />',   
+    label: "Order",
+    path: listedParamAdmin.order,
+    icon: "<CiShoppingBasket />",
+    subLabel: [],
+    permission: [],
+  },
+  {
+    label: "Collection",
+    path: "",
+    icon: "<CiShop />",
     subLabel: [
       {
         label: "Master Product",
         path: listedParamAdmin.master,
-        permission: []
+        permission: [],
       },
       {
         label: "Category Product",
         path: listedParamAdmin.category,
-        permission: ['user']
+        permission: ["user"],
       },
       {
         label: "Series Product",
         path: listedParamAdmin.series,
-        permission: ['user']
+        permission: ["user"],
       },
-      
+
       {
         label: "Cards",
         path: listedParamAdmin.cards,
-        permission: ['user']
-      }
-     
+        permission: ["user"],
+      },
     ],
-    permission: []
+    permission: [],
   },
- 
+
   // {
   //   label: 'Event',
   //   path: '',
-  //   icon: '<CiCalendar />',   
+  //   icon: '<CiCalendar />',
   //   subLabel: [],
   //   permission: []
   // },
   {
-    label: 'Setting',
+    label: "Setting",
     path: listedParamAdmin.setting,
-    icon: '<FaGear />',   
+    icon: "<FaGear />",
     subLabel: [],
-    permission: []
+    permission: [],
   },
   {
-    label: 'Member',
+    label: "Member",
     path: listedParamAdmin.user,
-    icon: '<GoPeople />',   
+    icon: "<GoPeople />",
     subLabel: [],
-    permission: []
+    permission: [],
   },
   // {
   //   label: 'Subcription',
   //   path: '',
-  //   icon: '<SiAmazonsimpleemailservice />',   
+  //   icon: '<SiAmazonsimpleemailservice />',
   //   subLabel: [],
   //   permission: []
   // },
- 
- 
 ];

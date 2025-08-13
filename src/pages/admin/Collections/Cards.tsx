@@ -133,6 +133,7 @@ const Cards = () => {
       setValue("price", cardItem.price);
       setValue("stock", cardItem.stock);
       setValue("description", cardItem.description);
+      setValue("isSpecial", cardItem.isSpecial)
     }
   }, [cardItem]);
 
@@ -353,7 +354,7 @@ const Cards = () => {
               <legend className="fieldset-legend">Card Type</legend>
               <label className="label">
                 Reguler Card
-                <input type="checkbox" defaultChecked className="toggle" {...register("isSpecial")} />
+                <input type="checkbox" className="toggle" {...register("isSpecial")} />
                 Special Card
               </label>
             </fieldset>

@@ -15,11 +15,9 @@ const LayoutAdmin = () => {
         <div className="flex sticky top-0 z-50">
           <NavbarAdmin/>
         </div>
-        <div className="flex-1 overflow-y-auto p-3">
+        <div className="flex-1 overflow-y-auto p-3 w-full bg-white">
           <Outlet />
-         {/* <div className='w-full flex justify-center my-5'>
-          <a href="http://curaweda.com" target="_blank" rel="noopener noreferrer">  &copy; PT Curaweda Palagan Innotech @{new Date().getFullYear()}</a>
-         </div> */}
+        
         </div>
       </div>
     </div>
