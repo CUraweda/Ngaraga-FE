@@ -3,8 +3,11 @@ import CartItemStore from "@/store/cartItem.store";
 import userStore from "@/store/user.store";
 import { useEffect } from "react";
 import { formatRupiah } from "@/helper/formatRupiah";
+import { useNavigate } from "react-router-dom";
+import { listedParam } from "@/constant/listed.param";
 
 const CartItem = () => {
+  const navigate = useNavigate();
   const { carts, getCart, updateCart, deleteCart } = CartItemStore();
   const { user } = userStore();
 
@@ -38,6 +41,11 @@ const CartItem = () => {
     });
   };
 
+  const handleCheckout = () => {
+    // Navigate to My Cart page first
+    navigate(listedParam.myCart);
+  };
+
   return (
     <div>
       <ul className="list bg-base-100 rounded-box shadow-md max-h-[500px] overflow-y-auto">
@@ -61,7 +69,10 @@ const CartItem = () => {
                   </span>
                 </div>
               </div>
-              <button className="btn btn-square btn-ghost" onClick={() => handleDelete(cart?.id)}>
+              <button
+                className="btn btn-square btn-ghost"
+                onClick={() => handleDelete(cart?.id)}
+              >
                 <Trash2 />
               </button>
             </div>
@@ -102,8 +113,12 @@ const CartItem = () => {
         ))}
       </ul>
       <div className="flex items-center mt-5 justify-between">
-        <span className="text-lg font-semibold">{formatRupiah(carts?.grandTotal)}</span>
-        <button className="btn btn-primary btn-sm">Checkout</button>
+        <span className="text-lg font-semibold">
+          {formatRupiah(carts?.grandTotal)}
+        </span>
+        <button onClick={handleCheckout} className="btn btn-primary btn-sm">
+          Checkout
+        </button>
       </div>
     </div>
   );

@@ -9,6 +9,9 @@ const Home = lazy(() => import("@/pages/Home"));
 const LayoutHome = lazy(() => import("@/components/Layout/LayoutHome"));
 const HomeMarket = lazy(() => import("@/pages/user/HomeMarket"));
 const ProfileUser = lazy(() => import("@/pages/user/ProfileUser"));
+const MyCart = lazy(() => import("@/pages/user/MyCart"));
+const CheckoutUser = lazy(() => import("@/pages/user/Checkout"));
+const OrderSuccess = lazy(() => import("@/pages/user/OrderSuccess"));
 const LayoutAdmin = lazy(() => import("@/components/Layout/LayoutAdmin"));
 const Dashboard = lazy(() => import("@/pages/admin/Dashboard"));
 const Master = lazy(() => import("@/pages/admin/Collections/Master"));
@@ -20,6 +23,8 @@ const DetailCard = lazy(() => import("@/pages/user/DetailCard"));
 const User = lazy(() => import("@/pages/admin/User"));
 const RankedCollectors = lazy(() => import("@/pages/RankedCollectors"));
 const SettingPage = lazy(() => import("@/pages/admin/SettingPage"));
+const OrderPage = lazy(() => import("@/pages/admin/Collections/OrderPage"));
+const DetailOrder = lazy(() => import("@/pages/admin/Collections/DetailOrder"));
 
 const Route: ReturnType<typeof createBrowserRouter> = createBrowserRouter([
   {
@@ -58,6 +63,9 @@ const Route: ReturnType<typeof createBrowserRouter> = createBrowserRouter([
       { path: listedParam.market, element: <HomeMarket /> },
       { path: listedParam.detailCard, element: <DetailCard /> },
       { path: listedParam.rankedCollectors, element: <RankedCollectors /> },
+      { path: listedParam.myCart, element: <MyCart /> },
+      { path: listedParam.checkout, element: <CheckoutUser /> },
+      { path: listedParam.OrderSuccess, element: <OrderSuccess /> },
     ],
   },
   {
@@ -84,6 +92,8 @@ const Route: ReturnType<typeof createBrowserRouter> = createBrowserRouter([
       { path: listedParamAdmin.home, element: <Dashboard /> },
       { path: listedParamAdmin.master, element: <Master /> },
       { path: listedParamAdmin.category, element: <Category /> },
+      { path: listedParamAdmin.order, element: <OrderPage /> },
+      { path: listedParamAdmin.detail_order, element: <DetailOrder /> },
       { path: listedParamAdmin.series, element: <Series /> },
       { path: listedParamAdmin.cards, element: <Cards /> },
       { path: listedParamAdmin.cardsDetail, element: <CardDetail /> },
