@@ -1,4 +1,6 @@
-import { useEffect } from "react";
+"use client";
+
+import { useEffect, useMemo } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { AddressManager } from "@/components/checkout/AddressManager";
 import { DeliveryOptions } from "@/components/checkout/DeliveryOptions";
@@ -35,10 +37,10 @@ export interface Address {
   label: any;
   province: any;
   city: any;
-  addressId: any; // <-- ID tujuan untuk ongkir (receiver_destination_id)
+  addressId: any; // receiver_destination_id untuk ongkir
   subdistrict: any;
   postalCode: any;
-  id: string; // <-- UUID alamat (dipakai untuk transaction.addressId)
+  id: string; // UUID alamat
   name: string;
   phone: string;
   address: string;
@@ -72,7 +74,15 @@ const Checkout = () => {
     errors,
     setErrors,
     clearErrors,
-    selectedPickupTime,
+
+    // payment & transaction
+    transactionId,
+    paymentStatus,
+    isCheckingPayment,
+    checkPaymentStatus,
+    stopPaymentStatusPolling,
+    paymentTimer,
+    paymentExpiresAt,
 
     // cart & shipping
     fetchCartItems,
@@ -88,16 +98,16 @@ const Checkout = () => {
 
   const { getUser, user } = userStore();
 
+  // Bootstrap user & cart
   useEffect(() => {
     (async () => {
       if (!user?.id) await getUser();
       const uid = userStore.getState().user?.id;
-      if (uid) {
-        await fetchCartItems(uid as string);
-      }
+      if (uid) await fetchCartItems(uid as string);
     })();
   }, [fetchCartItems]);
 
+  // Init data customer
   useEffect(() => {
     setCustomerData({
       name: "",
@@ -111,7 +121,182 @@ const Checkout = () => {
       addressDetails: "",
       notes: "",
     });
-  }, []);
+  }, [setCustomerData]);
+
+  // Cleanup polling saat unmount
+  useEffect(() => {
+    return () => {
+      stopPaymentStatusPolling();
+    };
+  }, [stopPaymentStatusPolling]);
+
+  const subtotal = cartGrandTotal || totalAmount || 0;
+
+  const selectedDeliveryOption = useMemo(
+    () => shippingOptions.find((d) => d.id === selectedDelivery),
+    [shippingOptions, selectedDelivery]
+  );
+  const shipping = selectedDeliveryOption?.shipping_cost_net ?? 0;
+
+  const discount = 0;
+  const vat = Math.round((subtotal + shipping - discount) * 0.11);
+  const total = subtotal + shipping - discount + vat;
+
+  // Auto-redirect ke success (tetap)
+  useEffect(() => {
+    if (paymentStatus === "SUCCESS" && currentStep === 3) {
+      toast.success("Payment confirmed! Redirecting to order success...");
+      setTimeout(() => {
+        navigate("/order-success", {
+          state: {
+            orderId: transactionId || "ORD-" + Date.now(),
+            total,
+            paymentMethod:
+              (["BCAVA", "BNIVA", "BRIVA", "QRIS"].includes(selectedPayment)
+                ? {
+                    BCAVA: "Bank BCA",
+                    BNIVA: "Bank BNI",
+                    BRIVA: "Bank BRI",
+                    QRIS: "Qris",
+                  }[selectedPayment as "BCAVA" | "BNIVA" | "BRIVA" | "QRIS"]
+                : selectedPayment) || "Payment",
+            deliveryMethod: deliveryMethod,
+            deliveryOption:
+              deliveryMethod === "delivery"
+                ? selectedDeliveryOption
+                  ? `${selectedDeliveryOption.shipping_name} ${selectedDeliveryOption.service_name}`
+                  : "-"
+                : "Pickup",
+            pickupTime: deliveryMethod === "pickup" ? null : null,
+            pickupLocation:
+              deliveryMethod === "pickup" ? "Ngaraga by Dolanan" : null,
+            deliveryAddress:
+              deliveryMethod === "delivery" && selectedAddress
+                ? selectedAddress.address
+                : null,
+          },
+        });
+      }, 1200);
+    }
+  }, [
+    paymentStatus,
+    currentStep,
+    transactionId,
+    total,
+    selectedPayment,
+    deliveryMethod,
+    selectedDeliveryOption,
+    selectedAddress,
+    navigate,
+  ]);
+
+  // Validasi Step 1 (tetap)
+  const validateStep1 = (): boolean => {
+    clearErrors();
+    const newErrors: Record<string, string> = {};
+
+    if (customerType === "new") {
+      if (!customerData.name.trim()) newErrors.name = "Name is required";
+      if (!customerData.email.trim()) newErrors.email = "Email is required";
+      if (!customerData.phone.trim()) newErrors.phone = "Phone is required";
+
+      if (deliveryMethod === "delivery") {
+        if (!customerData.addressDetails.trim())
+          newErrors.addressDetails = "Address details is required";
+        if (!customerData.postalCode.trim())
+          newErrors.postalCode = "Postal code is required";
+      }
+    } else {
+      if (deliveryMethod === "delivery" && !selectedAddress) {
+        newErrors.address = "Please select an address";
+      }
+    }
+
+    if (deliveryMethod === "delivery" && !selectedDelivery)
+      newErrors.delivery = "Please select a delivery option";
+
+    if (!selectedPayment) newErrors.payment = "Please select a payment method";
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return false;
+    }
+    return true;
+  };
+
+  // MASUK STEP 2 → buat transaksi (sekali) & biarkan store auto-polling
+  const handleContinueToPayment = async () => {
+    if (!validateStep1()) {
+      toast.error("Please fill in all required fields");
+      return;
+    }
+
+    setCurrentStep(2); // tampilkan Step 2 dulu agar UI terasa cepat
+
+    try {
+      const uid = userStore.getState().user?.id as string | undefined;
+      if (!uid) throw new Error("User belum login.");
+      if (!selectedAddress?.id) throw new Error("Alamat belum dipilih.");
+      if (!selectedDelivery)
+        throw new Error("Metode pengiriman belum dipilih.");
+
+      // Hanya buat transaksi jika belum ada
+      if (!transactionId) {
+        setIsLoading(true);
+        await createTransaction({
+          userId: uid,
+          subTotal: subtotal,
+          discount,
+          tax: vat,
+        });
+        // Store akan otomatis start polling & timer
+      } else {
+        // Kalau sudah ada, untuk jaga-jaga mulai cek sekali
+        void checkPaymentStatus(transactionId);
+      }
+    } catch (error: any) {
+      console.error(error);
+      toast.error(
+        error?.response?.data?.message ||
+          error?.message ||
+          "Gagal menginisiasi pembayaran."
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Pilih alamat → hitung ongkir
+  const handleAddressSelect = (address: Address) => {
+    setSelectedAddress(address);
+    void calculatePostage(address.addressId);
+    toast.success("Address selected");
+  };
+
+  const formatTimer = (seconds: number) => {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    return {
+      hours: hours.toString().padStart(2, "0"),
+      minutes: minutes.toString().padStart(2, "0"),
+      seconds: secs.toString().padStart(2, "0"),
+    };
+  };
+
+  const getExpiryDate = () => {
+    if (!paymentExpiresAt) return "-";
+    const dt = new Date(paymentExpiresAt);
+    return (
+      dt.toLocaleDateString("en-GB", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      }) +
+      ", " +
+      dt.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })
+    );
+  };
 
   const steps: CheckoutStep[] = [
     {
@@ -134,28 +319,26 @@ const Checkout = () => {
     },
   ];
 
-  // Mapping shippingOptions -> DeliveryOptions
-  const deliveryOptions =
-    shippingOptions.length > 0
-      ? shippingOptions.map((o) => ({
-          id: o.id,
-          name: `${o.shipping_name} ${o.service_name}`,
-          time: o.etd || "-",
-          price: o.shipping_cost_net, // ⬅️ pakai NET untuk UI & total
-          raw: o,
-          logo: `/placeholder.svg?height=40&width=80&text=${encodeURIComponent(
-            o.shipping_name
-          )}`,
-        }))
-      : [
-          {
-            id: "placeholder-1",
-            name: "—",
-            time: "-",
-            price: 0,
-            logo: "/placeholder.svg?height=40&width=80&text=—",
-          },
-        ];
+  const deliveryOptions = shippingOptions.length
+    ? shippingOptions.map((o) => ({
+        id: o.id,
+        name: `${o.shipping_name} ${o.service_name}`,
+        time: o.etd || "-",
+        price: o.shipping_cost_net,
+        raw: o,
+        logo: `/placeholder.svg?height=40&width=80&text=${encodeURIComponent(
+          o.shipping_name
+        )}`,
+      }))
+    : [
+        {
+          id: "placeholder-1",
+          name: "—",
+          time: "-",
+          price: 0,
+          logo: "/placeholder.svg?height=40&width=80&text=—",
+        },
+      ];
 
   const paymentOptions = [
     {
@@ -179,160 +362,6 @@ const Checkout = () => {
       logo: "/placeholder.svg?height=40&width=80&text=QRIS",
     },
   ];
-
-  // Gunakan grand total dari API cart sebagai subtotal (lebih konsisten)
-  const subtotal = cartGrandTotal || totalAmount || 0;
-
-  const selectedDeliveryOption = deliveryOptions.find(
-    (d) => d.id === selectedDelivery
-  );
-  const shipping = selectedDeliveryOption?.price ?? 0;
-
-  const discount = 0;
-  const vat = Math.round((subtotal + shipping - discount) * 0.11);
-  const total = subtotal + shipping - discount + vat;
-
-  const validateStep1 = (): boolean => {
-    clearErrors();
-    const newErrors: Record<string, string> = {};
-
-    if (customerType === "new") {
-      if (!customerData.name.trim()) newErrors.name = "Name is required";
-      if (!customerData.email.trim()) newErrors.email = "Email is required";
-      if (!customerData.phone.trim()) newErrors.phone = "Phone is required";
-
-      if (deliveryMethod === "delivery") {
-        if (!customerData.addressDetails.trim())
-          newErrors.addressDetails = "Address details is required";
-        if (!customerData.postalCode.trim())
-          newErrors.postalCode = "Postal code is required";
-      }
-    } else {
-      if (deliveryMethod === "delivery" && !selectedAddress) {
-        newErrors.address = "Please select an address";
-      }
-    }
-
-    if (deliveryMethod === "delivery") {
-      if (!selectedDelivery)
-        newErrors.delivery = "Please select a delivery option";
-    }
-
-    if (!selectedPayment) newErrors.payment = "Please select a payment method";
-
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
-      return false;
-    }
-    return true;
-  };
-
-  const handleContinueToPayment = async () => {
-    if (!validateStep1()) {
-      toast.error("Please fill in all required fields");
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      const uid = userStore.getState().user?.id as string | undefined;
-      if (!uid) throw new Error("User belum login.");
-      if (!selectedAddress?.id) throw new Error("Alamat belum dipilih.");
-      if (!selectedDelivery)
-        throw new Error("Metode pengiriman belum dipilih.");
-
-      // Buat transaksi ke backend
-      await createTransaction({
-        userId: uid,
-        subTotal: subtotal,
-        discount,
-        tax: vat,
-      });
-
-      toast.success("Payment processed successfully!");
-      setCurrentStep(2); // atau 3 kalau mau langsung selesai
-
-      // Opsional: redirect langsung ke order success
-      // navigate("/order-success", { state: { ... } });
-    } catch (error: any) {
-      console.error(error);
-      toast.error(
-        error?.response?.data?.message ||
-          error?.message ||
-          "Payment failed. Please try again."
-      );
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handlePayNow = async () => {
-    setIsLoading(true);
-    try {
-      const uid = userStore.getState().user?.id as string | undefined;
-      if (!uid) throw new Error("User belum login.");
-      if (!selectedAddress?.id) throw new Error("Alamat belum dipilih.");
-      if (!selectedDelivery)
-        throw new Error("Metode pengiriman belum dipilih.");
-
-      // Buat transaksi ke backend
-      const res = await createTransaction({
-        userId: uid,
-        subTotal: subtotal, // dari cartGrandTotal
-        discount, // variabel discount di halaman ini
-        tax: vat, // variabel VAT di halaman ini
-      });
-
-      // (opsional) jika backend mengembalikan instruksi/URL pembayaran, kamu bisa arahkan user di sini
-      // contoh:
-      // if (res?.data?.paymentUrl) {
-      //   window.location.href = res.data.paymentUrl;
-      //   return;
-      // }
-
-      toast.success("Payment processed successfully!");
-      setCurrentStep(3);
-
-      setTimeout(() => {
-        navigate("/order-success", {
-          state: {
-            orderId: res?.data?.transactionId || "ORD-" + Date.now(),
-            total,
-            paymentMethod: paymentOptions.find((p) => p.id === selectedPayment)
-              ?.name,
-            deliveryMethod: deliveryMethod,
-            deliveryOption:
-              deliveryMethod === "delivery"
-                ? deliveryOptions.find((d) => d.id === selectedDelivery)?.name
-                : "Pickup",
-            pickupTime: deliveryMethod === "pickup" ? selectedPickupTime : null,
-            pickupLocation:
-              deliveryMethod === "pickup" ? "Ngaraga by Dolanan" : null,
-            deliveryAddress:
-              deliveryMethod === "delivery" && selectedAddress
-                ? selectedAddress.address
-                : null,
-          },
-        });
-      }, 1500);
-    } catch (error: any) {
-      console.error(error);
-      toast.error(
-        error?.response?.data?.message ||
-          error?.message ||
-          "Payment failed. Please try again."
-      );
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Saat user memilih alamat → set & langsung hit calculate (pakai address.addressId untuk ongkir)
-  const handleAddressSelect = (address: Address) => {
-    setSelectedAddress(address);
-    void calculatePostage(address.addressId);
-    toast.success("Address selected");
-  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -388,23 +417,42 @@ const Checkout = () => {
               <div className="bg-white rounded-lg shadow-sm p-6">
                 <div className="flex items-center justify-between mb-6">
                   <h3 className="text-2xl font-bold text-gray-900">Payment</h3>
+                  {paymentStatus && (
+                    <div
+                      className={`px-3 py-1 rounded-full text-sm font-medium ${
+                        paymentStatus === "SUCCESS"
+                          ? "bg-green-100 text-green-800"
+                          : paymentStatus === "FAILED"
+                          ? "bg-red-100 text-red-800"
+                          : "bg-yellow-100 text-yellow-800"
+                      }`}
+                    >
+                      {paymentStatus === "SUCCESS"
+                        ? "Payment Successful"
+                        : paymentStatus === "FAILED"
+                        ? "Payment Failed"
+                        : "Payment Pending"}
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex justify-between items-start mb-6">
                   <div>
                     <p className="text-sm text-gray-600 mb-1">Order ID</p>
                     <p className="font-bold text-lg">
-                      ORD-{Date.now().toString().slice(-8)}
+                      {transactionId
+                        ? transactionId.slice(-8).toUpperCase()
+                        : "ORD-" + Date.now().toString().slice(-8)}
                     </p>
                   </div>
                   <div className="text-right">
                     <p className="text-sm text-gray-600 mb-1">Payment Within</p>
                     <div className="flex items-center space-x-2 text-lg font-bold">
-                      <span>23</span>
+                      <span>{formatTimer(paymentTimer).hours}</span>
                       <span className="text-gray-400">:</span>
-                      <span>59</span>
+                      <span>{formatTimer(paymentTimer).minutes}</span>
                       <span className="text-gray-400">:</span>
-                      <span>45</span>
+                      <span>{formatTimer(paymentTimer).seconds}</span>
                     </div>
                     <div className="flex items-center space-x-4 text-xs text-gray-500">
                       <span>Hours</span>
@@ -412,15 +460,7 @@ const Checkout = () => {
                       <span>Seconds</span>
                     </div>
                     <p className="text-xs text-gray-500 mt-1">
-                      Due on{" "}
-                      {new Date(
-                        Date.now() + 24 * 60 * 60 * 1000
-                      ).toLocaleDateString("en-GB", {
-                        day: "2-digit",
-                        month: "short",
-                        year: "numeric",
-                      })}
-                      , 15:17
+                      Due on {getExpiryDate()}
                     </p>
                   </div>
                 </div>
@@ -492,12 +532,16 @@ const Checkout = () => {
                         );
                       })()}
                     </div>
-                    <button
-                      onClick={() => setCurrentStep(1)}
-                      className="px-4 py-2 border border-yellow-500 text-yellow-600 rounded-md hover:bg-yellow-50 transition-colors"
-                    >
-                      Change Payment
-                    </button>
+
+                    {/* HAPUS refresh di header; pindah ke area bawah */}
+                    <div className="flex items-center space-x-2">
+                      <button
+                        onClick={() => setCurrentStep(1)}
+                        className="px-4 py-2 border border-yellow-500 text-yellow-600 rounded-md hover:bg-yellow-50 transition-colors"
+                      >
+                        Change Payment
+                      </button>
+                    </div>
                   </div>
 
                   <div className="mt-4 grid grid-cols-2 gap-4">
@@ -513,13 +557,19 @@ const Checkout = () => {
                       </p>
                       <div className="flex items-center space-x-2">
                         <p className="font-medium">
-                          8017{Date.now().toString().slice(-8)}
+                          8017
+                          {transactionId
+                            ? transactionId.slice(-8)
+                            : Date.now().toString().slice(-8)}
                         </p>
                         <button
                           onClick={() => {
-                            navigator.clipboard.writeText(
-                              `8017${Date.now().toString().slice(-8)}`
-                            );
+                            const vaNumber = `8017${
+                              transactionId
+                                ? transactionId.slice(-8)
+                                : Date.now().toString().slice(-8)
+                            }`;
+                            navigator.clipboard.writeText(vaNumber);
                             toast.success("Virtual account number copied!");
                           }}
                           className="text-gray-400 hover:text-gray-600 transition-colors"
@@ -543,11 +593,11 @@ const Checkout = () => {
                   </div>
                 </div>
 
-                <div className="space-y-6">
-                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                    <div className="flex items-start">
+                {paymentStatus === "SUCCESS" && (
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+                    <div className="flex items-center">
                       <svg
-                        className="w-5 h-5 text-yellow-600 mr-2 mt-0.5"
+                        className="w-5 h-5 text-green-600 mr-2"
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
@@ -556,26 +606,73 @@ const Checkout = () => {
                           strokeLinecap="round"
                           strokeLinejoin="round"
                           strokeWidth={2}
-                          d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                          d="M5 13l4 4L19 7"
                         />
                       </svg>
                       <div>
-                        <h5 className="font-medium text-yellow-800 mb-1">
-                          Important Notes:
+                        <h5 className="font-medium text-green-800 mb-1">
+                          Payment Successful!
                         </h5>
-                        <ul className="text-sm text-yellow-700 space-y-1">
-                          <li>
-                            • Payment must be completed within the time limit
-                          </li>
-                          <li>
-                            • Use the exact virtual account number provided
-                          </li>
-                          <li>• Payment confirmation will be sent via email</li>
-                          <li>• Contact support if you encounter any issues</li>
-                        </ul>
+                        <p className="text-sm text-green-700">
+                          Your payment has been confirmed. Redirecting to order
+                          completion...
+                        </p>
                       </div>
                     </div>
                   </div>
+                )}
+
+                {/* AREA BAWAH: ganti Pay Now -> Refresh Status */}
+                <div className="flex justify-end">
+                  <button
+                    onClick={() =>
+                      transactionId && checkPaymentStatus(transactionId)
+                    }
+                    disabled={isLoading || !transactionId || isCheckingPayment}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center space-x-2"
+                  >
+                    {isCheckingPayment ? (
+                      <>
+                        <svg
+                          className="animate-spin h-4 w-4"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                        >
+                          <circle
+                            className="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                          ></circle>
+                          <path
+                            className="opacity-75"
+                            fill="currentColor"
+                            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                          />
+                        </svg>
+                        <span>Checking...</span>
+                      </>
+                    ) : (
+                      <>
+                        <svg
+                          className="h-4 w-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                          />
+                        </svg>
+                        <span>Refresh Status</span>
+                      </>
+                    )}
+                  </button>
                 </div>
               </div>
             )}

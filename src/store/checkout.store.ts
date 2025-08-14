@@ -46,10 +46,8 @@ interface CheckoutState {
   // Selected options
   selectedDelivery: string;
   setSelectedDelivery: (delivery: string) => void;
-  selectedPayment: "bca" | "bni" | "bri" | "qris" | string;
-  setSelectedPayment: (
-    payment: "bca" | "bni" | "bri" | "qris" | string
-  ) => void;
+  selectedPayment: string; // gunakan ID UI: BCAVA/BNIVA/BRIVA/QRIS
+  setSelectedPayment: (payment: string) => void;
 
   // Pickup time
   selectedPickupTime: string;
@@ -80,13 +78,12 @@ interface CheckoutState {
 
   // Cart
   cartItems: CartItem[];
-  cartGrandTotal: number; // ⬅️ dari API (data.data.grandTotal)
+  cartGrandTotal: number; // dari API (data.data.grandTotal)
   cartLoading: boolean;
   cartError: string | null;
   fetchCartItems: (userId: string) => Promise<void>;
   clearCart: () => void;
   setCartItems: (items: CartItem[]) => void;
-  // Helpers
   cartTotalQty: () => number;
 
   // Shipping (ongkir)
@@ -105,6 +102,25 @@ interface CheckoutState {
     tax?: number;
   }) => Promise<any>;
 
+  // Payment status
+  transactionId: string | null;
+  setTransactionId: (id: string | null) => void;
+  paymentStatus: "PENDING" | "SUCCESS" | "FAILED" | null;
+  isCheckingPayment: boolean;
+  checkPaymentStatus: (
+    transactionId: string
+  ) => Promise<"PENDING" | "SUCCESS" | "FAILED">;
+  startPaymentStatusPolling: (transactionId: string) => void;
+  stopPaymentStatusPolling: () => void;
+  paymentPollingInterval: NodeJS.Timeout | null;
+
+  // Timer (menggunakan expiry tetap)
+  paymentTimer: number; // sisa detik
+  paymentExpiresAt: number | null; // timestamp ms (fixed)
+  paymentTimerInterval: NodeJS.Timeout | null;
+  startPaymentTimer: () => void;
+  stopPaymentTimer: () => void;
+
   // Reset
   resetCheckout: () => void;
 }
@@ -115,7 +131,7 @@ export const useCheckoutStore = create<CheckoutState>((set, get) => ({
   customerType: "existing",
   deliveryMethod: "delivery",
   selectedDelivery: "",
-  selectedPayment: "bca",
+  selectedPayment: "BCAVA", // selaraskan dengan UI
   selectedPickupTime: "08:00",
   selectedAddress: null,
   addresses: [],
@@ -135,18 +151,25 @@ export const useCheckoutStore = create<CheckoutState>((set, get) => ({
   errors: {},
   checkouts: null,
 
-  // Cart
   cartItems: [],
   cartGrandTotal: 0,
   cartLoading: false,
   cartError: null,
 
-  // Shipping
   shippingOptions: [],
   shippingLoading: false,
   shippingError: null,
 
-  // Actions umum
+  transactionId: null,
+  paymentStatus: null,
+  isCheckingPayment: false,
+  paymentPollingInterval: null,
+
+  paymentTimer: 24 * 60 * 60, // default 24 jam (display)
+  paymentExpiresAt: null,
+  paymentTimerInterval: null,
+
+  // Actions
   setCurrentStep: (step) => set({ currentStep: step }),
   setCustomerType: (type) => set({ customerType: type }),
   setDeliveryMethod: (method) => set({ deliveryMethod: method }),
@@ -240,7 +263,6 @@ export const useCheckoutStore = create<CheckoutState>((set, get) => ({
   // ====== Shipping (ongkir) ======
   setShippingOptions: (opts) => set({ shippingOptions: opts }),
 
-  // Pakai addressId (yang kamu kirim dari Checkout) sebagai receiver_destination_id
   calculatePostage: async (receiverDestinationId?: string) => {
     const state = get();
 
@@ -254,10 +276,10 @@ export const useCheckoutStore = create<CheckoutState>((set, get) => ({
       return;
     }
 
-    // 1) HARDCODE origin id
+    // 1) HARDCODE origin id (ganti sesuai bisnis)
     const shipper_destination_id = "10110";
 
-    // 2) item_value dari API cartItem grandTotal
+    // 2) item_value dari API cart grandTotal
     const item_value = Number(state.cartGrandTotal || 0);
 
     // 3) weight = total quantity * 0.002 (kg)
@@ -303,7 +325,6 @@ export const useCheckoutStore = create<CheckoutState>((set, get) => ({
         shippingError: null,
       });
 
-      // auto pilih opsi pertama kalau belum ada pilihan
       if (!get().selectedDelivery && opts.length > 0) {
         set({ selectedDelivery: opts[0].id });
       }
@@ -321,7 +342,6 @@ export const useCheckoutStore = create<CheckoutState>((set, get) => ({
   },
 
   calculatePostageForSelectedAddress: async () => {
-    // Kompatibilitas jika masih mengandalkan selectedAddress.addressId
     const maybeAddrId: any = (get().selectedAddress as any)?.addressId;
     return get().calculatePostage(maybeAddrId);
   },
@@ -347,8 +367,12 @@ export const useCheckoutStore = create<CheckoutState>((set, get) => ({
     // Ambil opsi shipping terpilih dari shippingOptions
     const pick = shippingOptions.find((o) => o.id === selectedDelivery);
 
-    // Payment method mapping (UI -> API)
+    // Mapping UI -> API
     const paymentMethodMap: Record<string, string> = {
+      BCAVA: "BCA",
+      BNIVA: "BNI",
+      BRIVA: "BRI",
+      QRIS: "QRIS",
       bca: "BCA",
       bni: "BNI",
       bri: "BRI",
@@ -358,22 +382,18 @@ export const useCheckoutStore = create<CheckoutState>((set, get) => ({
       paymentMethodMap[selectedPayment] ||
       String(selectedPayment || "").toUpperCase();
 
-    // Nilai default:
     const _subTotal = Number(subTotal ?? cartGrandTotal ?? 0);
-    // Kirim NET sebagai biaya shipping transaksi
-    const _shippingCost = pick ? Number(pick.shipping_cost_net ?? 0) : 0;
+    const _shippingCost = pick ? Number(pick.shipping_cost_net ?? 0) : 0; // gunakan NET utk transaksi
     const _discount = Number(discount ?? 0);
     const _tax = Number(tax ?? 0);
 
-    // Cart ID list (array of cart item id)
     const cartId = cartItems.map((c) => c.id);
 
-    // Shipping detail (gross & cashback & info)
     const shipping = pick
       ? {
-          name: pick.shipping_name, // "JNT"
-          serviceName: pick.service_name, // "EZ"
-          shippingCost: Number(pick.shipping_cost), // gross
+          name: pick.shipping_name,
+          serviceName: pick.service_name,
+          shippingCost: Number(pick.shipping_cost), // gross untuk info
           cashback: Number(pick.shipping_cashback),
           additional: 0,
           codValue: 0,
@@ -409,17 +429,152 @@ export const useCheckoutStore = create<CheckoutState>((set, get) => ({
       "/api/v1/transaction/create",
       payload
     );
+
+    // Robust extraction utk ID & expiry
+    const createdId =
+      data?.data?.id ||
+      data?.id ||
+      data?.data?.transactionId ||
+      data?.data?.transaction?.id;
+
+    const expiresAtMs =
+      (data?.data?.expiresAt && new Date(data.data.expiresAt).getTime()) ||
+      null;
+
+    if (createdId) {
+      set({
+        transactionId: String(createdId),
+        // Jika backend kasih expiry, gunakan itu; jika tidak, set default 24 jam
+        paymentExpiresAt: expiresAtMs ?? Date.now() + 24 * 60 * 60 * 1000,
+      });
+      // Mulai polling & timer dari store (hindari duplikasi dari komponen)
+      get().startPaymentStatusPolling(String(createdId));
+      get().startPaymentTimer();
+    }
+
     return data;
   },
 
+  setTransactionId: (id) => set({ transactionId: id }),
+
+  checkPaymentStatus: async (transactionId: string) => {
+    set({ isCheckingPayment: true });
+    try {
+      const { data } = await apiClient.get(
+        `/api/v1/transaction/show-one/${transactionId}`
+      );
+
+      // Robust path untuk status
+      const paymentStatus: "PENDING" | "SUCCESS" | "FAILED" =
+        data?.data?.TransactionPayment?.[0]?.status ??
+        data?.payment?.status ??
+        data?.data?.payment?.status ??
+        "PENDING";
+
+      set({
+        paymentStatus,
+        isCheckingPayment: false,
+      });
+
+      if (paymentStatus === "SUCCESS" || paymentStatus === "FAILED") {
+        get().stopPaymentStatusPolling();
+        get().stopPaymentTimer();
+        if (paymentStatus === "SUCCESS") {
+          set({ currentStep: 3 });
+        }
+      }
+
+      return paymentStatus;
+    } catch (error: any) {
+      console.error("Failed to check payment status:", error);
+      set({
+        isCheckingPayment: false,
+        paymentStatus: "FAILED",
+      });
+      get().stopPaymentStatusPolling();
+      get().stopPaymentTimer();
+      return "FAILED";
+    }
+  },
+
+  startPaymentStatusPolling: (transactionId: string) => {
+    // Clear interval lama
+    get().stopPaymentStatusPolling();
+
+    set({ transactionId });
+
+    const interval = setInterval(async () => {
+      try {
+        const status = await get().checkPaymentStatus(transactionId);
+        if (status === "SUCCESS" || status === "FAILED") {
+          get().stopPaymentStatusPolling();
+        }
+      } catch (error) {
+        console.error("Payment status polling error:", error);
+      }
+    }, 5000);
+
+    set({ paymentPollingInterval: interval });
+  },
+
+  stopPaymentStatusPolling: () => {
+    const interval = get().paymentPollingInterval;
+    if (interval) {
+      clearInterval(interval);
+    }
+    set({ paymentPollingInterval: null });
+  },
+
+  // Timer: hitung mundur berdasarkan paymentExpiresAt
+  startPaymentTimer: () => {
+    get().stopPaymentTimer(); // Clear existing timer
+
+    const existing = get().paymentExpiresAt;
+    const expiresAt = existing ?? Date.now() + 24 * 60 * 60 * 1000;
+    set({ paymentExpiresAt: expiresAt });
+
+    // Set nilai awal sisa detik
+    const initialLeft = Math.max(
+      0,
+      Math.floor((expiresAt - Date.now()) / 1000)
+    );
+    set({ paymentTimer: initialLeft });
+
+    const interval = setInterval(() => {
+      const exp = get().paymentExpiresAt;
+      if (!exp) {
+        get().stopPaymentTimer();
+        return;
+      }
+      const left = Math.max(0, Math.floor((exp - Date.now()) / 1000));
+      set({ paymentTimer: left });
+      if (left <= 0) {
+        get().stopPaymentTimer();
+      }
+    }, 1000);
+
+    set({ paymentTimerInterval: interval });
+  },
+
+  stopPaymentTimer: () => {
+    const interval = get().paymentTimerInterval;
+    if (interval) {
+      clearInterval(interval);
+    }
+    set({ paymentTimerInterval: null });
+    // NOTE: tidak mereset paymentExpiresAt agar "Due on" tetap konsisten
+  },
+
   // Reset
-  resetCheckout: () =>
+  resetCheckout: () => {
+    get().stopPaymentStatusPolling();
+    get().stopPaymentTimer();
     set({
       currentStep: 1,
       customerType: "existing",
       deliveryMethod: "delivery",
       selectedDelivery: "",
-      selectedPayment: "bca",
+      selectedPayment: "BCAVA",
       selectedPickupTime: "08:00",
       selectedAddress: null,
       customerData: {
@@ -443,5 +598,13 @@ export const useCheckoutStore = create<CheckoutState>((set, get) => ({
       shippingOptions: [],
       shippingLoading: false,
       shippingError: null,
-    }),
+      transactionId: null,
+      paymentStatus: null,
+      isCheckingPayment: false,
+      paymentPollingInterval: null,
+      paymentTimer: 24 * 60 * 60,
+      paymentExpiresAt: null,
+      paymentTimerInterval: null,
+    });
+  },
 }));
