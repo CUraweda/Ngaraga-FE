@@ -3,7 +3,7 @@ name: Checking for production area
 on:
   pull_request:
     branches:
-      - dev
+      - development
 
 jobs:
   build:

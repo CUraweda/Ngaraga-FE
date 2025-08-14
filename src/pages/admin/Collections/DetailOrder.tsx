@@ -3,101 +3,12 @@ import {
   FaBoxOpen,
   FaTruck,
   FaCheck,
-  FaPen,
-  FaTrashAlt,
 } from "react-icons/fa";
-import { Package, Truck, PackageCheck } from "lucide-react";
 import orderStore from "@/store/order.store";
 import { useParams } from "react-router-dom";
 import { useEffect } from "react";
 import { formatRupiah } from "@/helper/formatRupiah";
 
-type NodeKind = "icon" | "dot";
-type Step = {
-  at: string;
-  title: string;
-  desc?: string;
-  kind: NodeKind;
-  tone: "gold" | "gray";
-  icon?: "package" | "truck" | "done";
-};
-
-const steps: Step[] = [
-  {
-    at: "10 Dec 2024 17:20",
-    title: "Delivered",
-    kind: "icon",
-    tone: "gray",
-    icon: "done",
-  },
-  {
-    at: "10 Dec 2024 13:53",
-    title: "The order is in transit for delivery.",
-    kind: "dot",
-    tone: "gray",
-  },
-  {
-    at: "10 Dec 2024 06:24",
-    title: "Pesanan diproses di lokasi transit JAKARTA.",
-    kind: "dot",
-    tone: "gray",
-  },
-
-  {
-    at: "09 Dec 2024 20:51",
-    title: "The order was dispatched from the sorting facility in JAKARTA.",
-    kind: "icon",
-    tone: "gold",
-    icon: "truck",
-  },
-  {
-    at: "09 Dec 2024 20:51",
-    title: "The order was received by the JAKARTA agent for processing.",
-    kind: "dot",
-    tone: "gold",
-  },
-
-  {
-    at: "12 Dec 2024 16:00",
-    title: "Preparing to ship",
-    kind: "icon",
-    tone: "gold",
-    icon: "package",
-  },
-  {
-    at: "09 Dec 2024 13:07",
-    title: "Courier assigned to pick up the order.",
-    kind: "dot",
-    tone: "gold",
-  },
-
-  {
-    at: "09 Dec 2024 12:54",
-    title: "Order placed",
-    kind: "icon",
-    tone: "gold",
-    icon: "package",
-  },
-];
-
-const color = {
-  gold: {
-    bg: "bg-[#F0B429]",
-    ring: "ring-[#F0B429]",
-    text: "text-[#826A00]", // tone gelap sedikit
-  },
-  gray: {
-    bg: "bg-[#BDBDBD]",
-    ring: "ring-[#BDBDBD]",
-    text: "text-[#6B7280]",
-  },
-};
-
-const Icon = ({ name }: { name: NonNullable<Step["icon"]> }) => {
-  if (name === "truck") return <Truck className="h-4 w-4" />;
-  if (name === "done") return <PackageCheck className="h-4 w-4" />;
-  return <Package className="h-4 w-4" />;
-};
 
 const DetailOrder = () => {
   const { id } = useParams();
