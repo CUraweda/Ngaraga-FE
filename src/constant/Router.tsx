@@ -23,6 +23,8 @@ const DetailCard = lazy(() => import("@/pages/user/DetailCard"));
 const User = lazy(() => import("@/pages/admin/User"));
 const RankedCollectors = lazy(() => import("@/pages/RankedCollectors"));
 const SettingPage = lazy(() => import("@/pages/admin/SettingPage"));
+const OrderPage = lazy(() => import("@/pages/admin/Collections/OrderPage"));
+const DetailOrder = lazy(() => import("@/pages/admin/Collections/DetailOrder"));
 
 const Route: ReturnType<typeof createBrowserRouter> = createBrowserRouter([
   {
@@ -90,6 +92,8 @@ const Route: ReturnType<typeof createBrowserRouter> = createBrowserRouter([
       { path: listedParamAdmin.home, element: <Dashboard /> },
       { path: listedParamAdmin.master, element: <Master /> },
       { path: listedParamAdmin.category, element: <Category /> },
+      { path: listedParamAdmin.order, element: <OrderPage /> },
+      { path: listedParamAdmin.detail_order, element: <DetailOrder /> },
       { path: listedParamAdmin.series, element: <Series /> },
       { path: listedParamAdmin.cards, element: <Cards /> },
       { path: listedParamAdmin.cardsDetail, element: <CardDetail /> },

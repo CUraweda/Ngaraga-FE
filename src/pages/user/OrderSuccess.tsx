@@ -27,7 +27,6 @@ const OrderSuccess = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-
       {/* Main Content */}
       <div className="flex items-center justify-center py-16">
         <div className="bg-white rounded-lg shadow-lg p-8 max-w-2xl w-full mx-4">
@@ -211,8 +210,11 @@ const OrderSuccess = () => {
                 : "View Order Details"}
             </button> */}
             <button
-              onClick={() => navigate("/")}
-              className="w-full border border-gray-300 text-gray-700 py-3 rounded-md font-medium hover:bg-gray-50 transition-colors"
+              onClick={() => {
+                navigate("/");
+                window.location.reload();
+              }}
+              className="w-full border cursor-pointer border-gray-300 text-gray-700 py-3 rounded-md font-medium hover:bg-gray-50 transition-colors"
             >
               Continue Shopping
             </button>

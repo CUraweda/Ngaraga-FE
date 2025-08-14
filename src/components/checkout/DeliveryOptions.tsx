@@ -1,5 +1,3 @@
-"use client";
-
 import { formatRupiah } from "@/helper/formatRupiah";
 
 interface DeliveryOption {
@@ -47,11 +45,11 @@ export const DeliveryOptions = ({
               onChange={(e) => onDeliverySelect(e.target.value)}
               className="sr-only"
             />
-            <img
+            {/* <img
               src={option.logo || "/placeholder.svg"}
               alt={option.name}
               className="w-12 h-8 object-contain mr-4"
-            />
+            /> */}
             <div className="flex-1">
               <div className="font-medium">{option.name}</div>
               <div className="text-sm text-gray-500">

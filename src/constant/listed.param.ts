@@ -14,6 +14,8 @@ export const listedParam = {
 export const listedParamAdmin = {
   home: "/admin",
   master: "/admin/collections/master",
+  order: "/admin/collections/order",
+  detail_order: "/admin/collections/order/:id",
   category: "/admin/collections/category",
   series: "/admin/collections/series",
   cards: "/admin/collections/cards",

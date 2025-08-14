@@ -1,8 +1,9 @@
-"use client";
-
-import { useState } from "react";
+// AddressManager.tsx
+import { useEffect, useMemo, useState } from "react";
 import type { Address } from "@/pages/user/Checkout";
 import { AddressModal } from "./AddressModal";
+import addressStore from "@/store/address.store";
+import userStore from "@/store/user.store";
 
 interface AddressManagerProps {
   addresses: Address[];
@@ -19,15 +20,72 @@ export const AddressManager = ({
   selectedAddress,
   onAddressSelect,
   onAddressEdit,
-  onAddressDelete,
   onAddNewAddress,
   error,
 }: AddressManagerProps) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingAddress, setEditingAddress] = useState<Address | null>(null);
 
-  const handleEditAddress = (address: Address) => {
-    setEditingAddress(address);
+  // store untuk address
+  const { list, loading, fetchMyAddresses, deleteData } = addressStore();
+  // store untuk user login
+  const { user, getUser } = userStore();
+
+  // Ambil user & daftar alamat saat mount
+  useEffect(() => {
+    (async () => {
+      await getUser();
+      await fetchMyAddresses();
+    })();
+  }, [getUser, fetchMyAddresses]);
+
+  // Saring alamat berdasarkan userId login
+  const userId = user?.id ?? "";
+  // ganti blok useMemo ini
+  const storeAddressesForUser = useMemo(() => {
+    if (!userId) return [];
+
+    // list sudah pasti array
+    const itemsArray = list ?? [];
+
+    return itemsArray.filter((a: any) => String(a.userId) === String(userId));
+  }, [list, userId]);
+
+  // Tentukan sumber data yang dipakai untuk ditampilkan:
+  // - Jika ada data dari store yang sudah terfilter by user → pakai itu
+  // - Jika tidak, fallback ke props.addresses (agar backward compatible)
+  const addressesToShow: Address[] = useMemo(() => {
+    // Pastikan struktur minimalnya sesuai tampilan (label, phone, address, dsb)
+    const normalize = (arr: any[]): Address[] =>
+      (arr || []).map((a: any) => ({
+        id: String(a.id),
+        // di UI Anda sebelumnya pakai address.name → ganti jadi label
+        // agar tidak error di TypeScript, bila tipe Address Anda belum punya 'label',
+        // bisa tambahkan field 'name' di sini sebagai alias tampilan:
+        name: a.label ?? a.name ?? "", // <- untuk h4 title (kompatibel UI lama)
+        label: a.label ?? "",
+        phone: a.phone ?? "",
+        addressId: a.addressId ?? 0,
+        address: a.address ?? "",
+        subdistrict: a.subdistrict ?? "",
+        city: a.city ?? "",
+        province: a.province ?? "",
+        postalCode: a.postalCode ?? "",
+        note: a.note ?? "",
+        // isDefault opsional tergantung backend Anda
+        isDefault: !!a.isDefault,
+        userId: String(a.userId ?? ""),
+        createdAt: a.createdAt,
+        updatedAt: a.updatedAt,
+      }));
+
+    if (storeAddressesForUser.length > 0)
+      return normalize(storeAddressesForUser);
+    return normalize(addresses);
+  }, [storeAddressesForUser, addresses]);
+
+  const handleEditAddress = (addr: Address) => {
+    setEditingAddress(addr);
     setIsModalOpen(true);
   };
 
@@ -36,20 +94,28 @@ export const AddressManager = ({
     setIsModalOpen(true);
   };
 
-  const handleModalSave = (addressData: Omit<Address, "id">) => {
+  // Dipanggil jika AddressModal mengirim onSave (opsi, jika Anda pakai alur props)
+  const handleModalSave = async (addressData: Omit<Address, "id">) => {
     if (editingAddress) {
-      onAddressEdit({ ...addressData, id: editingAddress.id });
+      onAddressEdit({ ...addressData, id: editingAddress.id } as Address);
     } else {
       onAddNewAddress(addressData);
     }
     setIsModalOpen(false);
     setEditingAddress(null);
+    // refresh daftar dari store agar sinkron
+    await fetchMyAddresses();
   };
 
-  const handleDeleteAddress = (addressId: string) => {
-    if (window.confirm("Are you sure you want to delete this address?")) {
-      onAddressDelete(addressId);
-    }
+  const handleDeleteAddress = async (addressId: string) => {
+    await deleteData(addressId); // ini sudah ada SweetAlert konfirmasi di store
+  };
+
+  const closeModal = async () => {
+    setIsModalOpen(false);
+    setEditingAddress(null);
+    // setiap kali modal ditutup (tambah/edit), refresh agar sinkron
+    await fetchMyAddresses();
   };
 
   return (
@@ -58,8 +124,12 @@ export const AddressManager = ({
 
       {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
 
+      {loading && (
+        <div className="mb-4 text-sm text-gray-500">Loading addresses…</div>
+      )}
+
       <div className="space-y-3 mb-4">
-        {addresses.map((address) => (
+        {addressesToShow.map((address) => (
           <label
             key={address.id}
             className={`block border rounded-lg p-4 cursor-pointer ${
@@ -78,7 +148,10 @@ export const AddressManager = ({
             <div className="flex items-start justify-between">
               <div className="flex-1">
                 <div className="flex items-center space-x-2">
-                  <h4 className="font-semibold">{address.name}</h4>
+                  {/* Gunakan 'name' (alias untuk label) agar UI lama tetap jalan */}
+                  <h4 className="font-semibold">
+                    {address.name || address.label || "Alamat"}
+                  </h4>
                   {address.isDefault && (
                     <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
                       Default
@@ -86,7 +159,14 @@ export const AddressManager = ({
                   )}
                 </div>
                 <p className="text-sm text-gray-600">{address.phone}</p>
-                <p className="text-sm text-gray-600 mt-1">{address.address}</p>
+                <p className="text-sm text-gray-600 mt-1">
+                  {/* Susun alamat panjang */}
+                  {address.address}
+                  {address.subdistrict ? `, ${address.subdistrict}` : ""}
+                  {address.city ? `, ${address.city}` : ""}
+                  {address.province ? `, ${address.province}` : ""}
+                  {address.postalCode ? ` ${address.postalCode}` : ""}
+                </p>
               </div>
               <div className="flex space-x-2 ml-4">
                 <button
@@ -99,9 +179,9 @@ export const AddressManager = ({
                   Edit
                 </button>
                 <button
-                  onClick={(e) => {
+                  onClick={async (e) => {
                     e.preventDefault();
-                    handleDeleteAddress(address.id);
+                    await handleDeleteAddress(address.id);
                   }}
                   className="text-red-600 text-sm hover:underline"
                 >
@@ -129,6 +209,13 @@ export const AddressManager = ({
             )}
           </label>
         ))}
+
+        {/* Jika tidak ada data */}
+        {!loading && addressesToShow.length === 0 && (
+          <div className="text-sm text-gray-500">
+            Belum ada alamat. Tambahkan alamat baru.
+          </div>
+        )}
       </div>
 
       <div className="flex space-x-4">
@@ -142,11 +229,8 @@ export const AddressManager = ({
 
       <AddressModal
         isOpen={isModalOpen}
-        onClose={() => {
-          setIsModalOpen(false);
-          setEditingAddress(null);
-        }}
-        onSave={handleModalSave}
+        onClose={closeModal}
+        onSave={handleModalSave} // opsional; AddressModal Anda saat ini sudah langsung create via store
         address={editingAddress}
       />
     </div>
