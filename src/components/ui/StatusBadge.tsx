@@ -2,24 +2,24 @@
 import { FaStore, FaBoxOpen, FaTruck, FaCheck } from "react-icons/fa";
 
 interface StatusBadgeProps {
-  status: "Payment" | "Packaging" | "Shipping" | "Delivered";
+  status: "pending" | "sent" | "DELIVERED" | "PICKED-UP";
 }
 
 const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
   const config = {
-    Payment: {
+    pending: {
       icon: <FaStore />,
       color: "text-red-500 border-red-500",
     },
-    Packaging: {
+    sent: {
       icon: <FaBoxOpen />,
       color: "text-yellow-500 border-yellow-500",
     },
-    Shipping: {
+    DELIVERED: {
       icon: <FaTruck />,
       color: "text-blue-500 border-blue-500",
     },
-    Delivered: {
+    "PICKED-UP": {
       icon: <FaCheck />,
       color: "text-green-500 border-green-500",
     },

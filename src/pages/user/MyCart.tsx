@@ -1,8 +1,6 @@
-"use client";
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Minus, Plus, } from "lucide-react";
+import { Minus, Plus } from "lucide-react";
 import CartItemStore from "@/store/cartItem.store";
 import userStore from "@/store/user.store";
 import { formatRupiah } from "@/helper/formatRupiah";

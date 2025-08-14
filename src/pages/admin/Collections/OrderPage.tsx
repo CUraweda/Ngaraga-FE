@@ -26,23 +26,38 @@ import { useNavigate } from "react-router-dom";
 import orderStore from "@/store/order.store";
 
 const Order = () => {
-  const [fromDate, setFromDate] = useState<Date | undefined>(new Date());
-  const [toDate, setToDate] = useState<Date | undefined>(new Date());
-  const { getOrder, orders } = orderStore();
+  const [fromDate, setFromDate] = useState<Date | undefined>();
+  const [toDate, setToDate] = useState<Date | undefined>();
+  const { getOrder, orders, order, deleteOrder, printOrder } = orderStore();
   const [currentPage, setCurrentPage] = useState(1);
   const [search, setSearch] = useState("");
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [totalPages, setTotalPages] = useState(0);
   const navigate = useNavigate();
 
+  let payloadParts: string[] = [
+    `limit=${itemsPerPage}`,
+    `page=${currentPage}`,
+    `search=user.name:${search}`,
+  ];
+
+  if (fromDate) {
+    payloadParts.push(`gte=createdAt:${fromDate}`);
+  }
+
+  if (toDate) {
+    payloadParts.push(`lte=createdAt:${toDate}`);
+  }
+
+  const payload = payloadParts.join("&");
+
   const fetchOrder = async () => {
-    const payload = `limit=${itemsPerPage}&page=${currentPage}`;
     await getOrder(payload);
   };
 
   useEffect(() => {
     fetchOrder();
-  }, [currentPage, itemsPerPage]);
+  }, [currentPage, itemsPerPage, payload]);
 
   useEffect(() => {
     if (orders) {
@@ -53,7 +68,7 @@ const Order = () => {
   const cards = [
     {
       label: "Payment",
-      value: 20,
+      value: order?.statusCounts?.PAYMENT,
       icon: <FaMoneyBillWave className="text-red-500" size={20} />,
       borderColor: "border-red-300",
       bgColor: "bg-red-50",
@@ -61,7 +76,7 @@ const Order = () => {
     },
     {
       label: "Packaging",
-      value: 8,
+      value: order?.statusCounts?.PACKAGING,
       icon: <FaBoxOpen className="text-yellow-500" size={20} />,
       borderColor: "border-yellow-300",
       bgColor: "bg-yellow-50",
@@ -69,7 +84,7 @@ const Order = () => {
     },
     {
       label: "Shipping",
-      value: 3,
+      value: order?.statusCounts?.SHIPPING,
       icon: <FaTruck className="text-blue-500" size={20} />,
       borderColor: "border-blue-300",
       bgColor: "bg-blue-50",
@@ -77,7 +92,7 @@ const Order = () => {
     },
     {
       label: "Delivered",
-      value: 100,
+      value: order?.statusCounts?.DELIVERED,
       icon: <FaCheckCircle className="text-green-500" size={20} />,
       borderColor: "border-green-300",
       bgColor: "bg-green-50",
@@ -91,16 +106,32 @@ const Order = () => {
       {/* card */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
         {[
-          { label: "Revenue Today", value: "Rp 2.000.000" },
-          { label: "Orders Today", value: "18" },
-          { label: "Total Revenue", value: "Rp 5.000.000" },
-          { label: "Total Orders", value: "131" },
+          {
+            label: "Revenue Today",
+            value: order?.totalRevenueToday,
+            isCurrency: true,
+          },
+          { label: "Orders Today", value: order?.totalOrdersToday },
+          {
+            label: "Total Revenue",
+            value: order?.totalRevenue,
+            isCurrency: true,
+          },
+          { label: "Total Orders", value: order?.totalOrders },
         ].map((item, idx) => (
           <Card key={idx}>
             <CardContent className="p-6">
               <div className="space-y-2">
                 <p className="text-sm text-muted-foreground">{item.label}</p>
-                <h2 className="text-3xl font-bold text-center">{item.value}</h2>
+                <h2 className="text-3xl font-bold text-center">
+                  {item.isCurrency
+                    ? item?.value?.toLocaleString("id-ID", {
+                        style: "currency",
+                        currency: "IDR",
+                        minimumFractionDigits: 0,
+                      })
+                    : item?.value}
+                </h2>
               </div>
             </CardContent>
           </Card>
@@ -129,21 +160,26 @@ const Order = () => {
       <div className="mt-6 flex items-center justify-between">
         <div className="flex gap-3">
           {/* Tombol Print Receipt */}
-          <button className="btn bg-yellow-500 hover:bg-yellow-600 text-white border-none">
+          {/* <button className="btn bg-yellow-500 hover:bg-yellow-600 text-white border-none">
             <FaPrint className="text-white" />
             Print Receipt
-          </button>
+          </button> */}
 
           {/* Tombol Delete */}
-          <button className="btn btn-outline border-red-500 text-red-500 hover:bg-red-500 hover:text-white">
+          {/* <button className="btn btn-outline border-red-500 text-red-500 hover:bg-red-500 hover:text-white">
             <FaTrash />
             Delete
-          </button>
+          </button> */}
         </div>
 
         <div>
           <div className="flex items-center gap-2 ml-auto">
-            <input type="text" className="input " placeholder="Search" />
+            <input
+              type="text"
+              className="input "
+              placeholder="Search"
+              onChange={(e) => setSearch(e.target.value)}
+            />
             <Popover>
               <PopoverTrigger asChild>
                 <Button
@@ -224,7 +260,7 @@ const Order = () => {
                       <div>{item.createdAt.split("T")[0]}</div>
                     </td>
                     <td>{item.transactionId}</td>
-                    <td>{"Nama"}</td>
+                    <td>{item.user.name}</td>
                     <td>
                       {item.totalAmount.toLocaleString("id-ID", {
                         style: "currency",
@@ -235,7 +271,7 @@ const Order = () => {
                     <td>{item.paymentMethod}</td>
                     <td>{item.transactionStep}</td>
                     <td>
-                      {/* <StatusBadge status={item.shippingStatus} /> */}
+                      <StatusBadge status={item.shippingStatus} />
                     </td>
                     <th className="space-x-2">
                       {/* Detail */}
@@ -244,7 +280,7 @@ const Order = () => {
                           <HiMagnifyingGlassPlus
                             size={"1.2rem"}
                             onClick={() =>
-                              navigate(`/admin/collections/order/1`)
+                              navigate(`/admin/collections/order/${item.id}`)
                             }
                           />
                         </button>
@@ -252,14 +288,20 @@ const Order = () => {
 
                       {/* Print */}
                       <div className="tooltip" data-tip="Print">
-                        <button className="btn btn-ghost btn-xs text-gray-600 hover:bg-gray-100">
+                        <button
+                          className="btn btn-ghost btn-xs text-gray-600 hover:bg-gray-100"
+                          onClick={() => printOrder(item.id)}
+                        >
                           <AiOutlinePrinter size={"1.2rem"} />
                         </button>
                       </div>
 
                       {/* Delete */}
                       <div className="tooltip" data-tip="Delete">
-                        <button className="btn btn-ghost btn-xs text-red-500 hover:bg-red-100">
+                        <button
+                          className="btn btn-ghost btn-xs text-red-500 hover:bg-red-100"
+                          onClick={() => deleteOrder(item.id)}
+                        >
                           <CiTrash size={"1.2rem"} />
                         </button>
                       </div>

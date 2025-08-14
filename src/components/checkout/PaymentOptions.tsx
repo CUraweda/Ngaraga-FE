@@ -43,11 +43,11 @@ export const PaymentOptions = ({
               onChange={(e) => onPaymentSelect(e.target.value)}
               className="sr-only"
             />
-            <img
+            {/* <img
               src={option.logo || "/placeholder.svg"}
               alt={option.name}
               className="w-12 h-8 object-contain mr-3"
-            />
+            /> */}
             <span className="font-medium">{option.name}</span>
             {selectedPayment === option.id && (
               <div className="ml-auto w-5 h-5 bg-yellow-500 rounded-full flex items-center justify-center">

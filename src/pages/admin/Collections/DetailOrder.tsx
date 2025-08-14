@@ -7,6 +7,10 @@ import {
   FaTrashAlt,
 } from "react-icons/fa";
 import { Package, Truck, PackageCheck } from "lucide-react";
+import orderStore from "@/store/order.store";
+import { useParams } from "react-router-dom";
+import { useEffect } from "react";
+import { formatRupiah } from "@/helper/formatRupiah";
 
 type NodeKind = "icon" | "dot";
 type Step = {
@@ -96,6 +100,17 @@ const Icon = ({ name }: { name: NonNullable<Step["icon"]> }) => {
 };
 
 const DetailOrder = () => {
+  const { id } = useParams();
+  const { getDetailOrder, detailOrder } = orderStore();
+
+  const fetchDetailOrder = async () => {
+    await getDetailOrder(id);
+  };
+
+  useEffect(() => {
+    fetchDetailOrder();
+  }, []);
+
   return (
     <div className="p-6">
       <h1 className="text-2xl font-bold">Detail Orders</h1>
@@ -103,23 +118,39 @@ const DetailOrder = () => {
       <div className="card shadow-md p-5 border border-gray-300 mt-6">
         <h2 className="card-title">Order Stages</h2>
         <ul className="steps mt-4">
-          <li className="step step-primary">
+          <li
+            className={`step  ${
+              detailOrder?.transactionStep == "PAYMENT" ? "step-primary" : ""
+            }`}
+          >
             <button className="btn btn-sm btn-outline btn-active gap-2">
               <FaMoneyBillWave /> Payment
             </button>
           </li>
-          <li className="step step-primary">
-            <button className="btn btn-sm btn-outline gap-2">
+          <li
+            className={`step ${
+              detailOrder?.transactionStep == "PACKAGING" ? "step-primary" : ""
+            }`}
+          >
+            <button className="btn btn-sm btn-outline btn-active gap-2">
               <FaBoxOpen /> Packaging
             </button>
           </li>
-          <li className="step">
-            <button className="btn btn-sm btn-outline gap-2">
+          <li
+            className={`step ${
+              detailOrder?.transactionStep == "SHIPPING" ? "step-primary" : ""
+            }`}
+          >
+            <button className="btn btn-sm btn-outline btn-active gap-2">
               <FaTruck /> Shipping
             </button>
           </li>
-          <li className="step">
-            <button className="btn btn-sm btn-outline gap-2">
+          <li
+            className={`step ${
+              detailOrder?.transactionStep == "DELIVERED" ? "step-primary" : ""
+            }`}
+          >
+            <button className="btn btn-sm btn-outline btn-active gap-2">
               <FaCheck /> Delivered
             </button>
           </li>
@@ -132,20 +163,25 @@ const DetailOrder = () => {
           <div className="flex items-center justify-between mb-4">
             <h2 className="card-title">Summary Order</h2>
             <p>
-              Order ID <span className="font-bold">ORD123456789</span>
+              Order ID{" "}
+              <span className="font-bold">{detailOrder?.transactionId}</span>
             </p>
           </div>
 
           <div className="space-y-3">
-            {[1, 2, 3].map((_, i) => (
+            {detailOrder?.items.map((items: any, index: number) => (
               <div
-                key={i}
+                key={index}
                 className="card card-side bg-base-100 shadow-sm border border-gray-200 rounded-xl p-3"
               >
                 {/* Gambar Produk */}
                 <figure className="w-20 h-20 rounded-lg overflow-hidden">
                   <img
-                    src="https://images.unsplash.com/photo-1679768431550-334c06c14a2f"
+                    src={
+                      import.meta.env.VITE_REACT_API_URL +
+                      "/" +
+                      items?.card?.image
+                    }
                     alt="Dancing Robot"
                     className="w-full h-full object-cover"
                   />
@@ -154,21 +190,23 @@ const DetailOrder = () => {
                 {/* Info Produk */}
                 <div className="card-body p-3 flex flex-col justify-between">
                   <div>
-                    <h2 className="card-title text-sm">Dancing Robot 0512</h2>
-                    <p className="text-xs text-gray-500">Orbitian</p>
-                    <p className="font-bold text-sm">Rp 200.000</p>
+                    <h2 className="card-title text-sm">{items?.card?.name}</h2>
+                    {/* <p className="text-xs text-gray-500">Orbitian</p> */}
+                    <p className="font-bold text-sm">
+                      {formatRupiah(items?.card?.price)}
+                    </p>
                   </div>
-                  <p className="text-xs">Qty: 1</p>
+                  <p className="text-xs">Qty: {items?.quantity}</p>
                 </div>
 
                 {/* Action Button */}
                 <div className="flex flex-col items-center justify-between p-2">
-                  <button className="btn btn-ghost btn-xs">
+                  {/* <button className="btn btn-ghost btn-xs">
                     <FaPen className="text-gray-500" />
                   </button>
                   <button className="btn btn-ghost btn-xs">
                     <FaTrashAlt className="text-red-500" />
-                  </button>
+                  </button> */}
                 </div>
               </div>
             ))}
@@ -179,25 +217,27 @@ const DetailOrder = () => {
           <div className="space-y-1 text-sm">
             <div className="flex justify-between">
               <span>Subtotal</span>
-              <span>Rp 500.000</span>
+              <span>{formatRupiah(detailOrder?.subTotal)}</span>
             </div>
             <div className="flex justify-between">
               <span>Shipping</span>
-              <span>Rp 15.000</span>
+              <span>{formatRupiah(detailOrder?.shippingCost)}</span>
             </div>
             <div className="flex justify-between">
               <span>Discount</span>
-              <span className="text-red-500">- Rp 100.000</span>
+              <span className="text-red-500">
+                -{formatRupiah(detailOrder?.discount)}
+              </span>
             </div>
             <div className="flex justify-between">
-              <span>VAT 11%</span>
-              <span>Rp 45.650</span>
+              <span>TAX</span>
+              <span>{formatRupiah(detailOrder?.tax)}</span>
             </div>
           </div>
           <div className="divider my-2"></div>
           <div className="flex justify-between font-bold text-lg">
             <span>Total</span>
-            <span>Rp 460.650</span>
+            <span>{formatRupiah(detailOrder?.totalAmount)}</span>
           </div>
         </div>
 
@@ -207,12 +247,12 @@ const DetailOrder = () => {
           <div>
             <h3 className="font-semibold mb-2">Payment</h3>
             <div className="flex items-center gap-3">
-              <img
+              {/* <img
                 src="https://upload.wikimedia.org/wikipedia/commons/0/0a/BCA_logo.svg"
                 alt="BCA"
                 className="w-16"
-              />
-              <span>Bank BCA</span>
+              /> */}
+              <span>{detailOrder?.TransactionPayment[0]?.paymentType}</span>
             </div>
           </div>
 
@@ -220,27 +260,30 @@ const DetailOrder = () => {
           <div>
             <div className="flex justify-between items-center mb-2">
               <h3 className="font-semibold">Shipment</h3>
-              <button className="btn btn-ghost btn-xs">
+              {/* <button className="btn btn-ghost btn-xs">
                 <FaPen className="text-gray-500" />
-              </button>
+              </button> */}
             </div>
 
             <div className="flex items-center gap-3">
-              <img
+              {/* <img
                 src="https://upload.wikimedia.org/wikipedia/commons/3/3a/Anter_Aja_logo.png"
                 alt="Anter Aja"
                 className="w-16"
-              />
+              /> */}
               <div>
-                <p>Anter Aja</p>
+                <p>{detailOrder?.TransactionShipping[0]?.name}</p>
                 <p className="text-xs text-gray-500">
-                  Estimated Delivery: 3–4 Days
+                  {detailOrder?.TransactionShipping[0]?.estimatedDate}
                 </p>
               </div>
             </div>
 
             <p className="mt-2 text-sm">
-              Receipt: <span className="font-mono">BDG1234567890JKT</span>
+              Receipt:
+              <span className="font-mono">
+                {detailOrder?.TransactionShipping[0]?.resiNo ?? "-"}
+              </span>
             </p>
           </div>
 
@@ -248,16 +291,25 @@ const DetailOrder = () => {
           <div>
             <div className="flex justify-between items-center">
               <h3 className="font-semibold mb-2">Shipping Information</h3>
-              <button className="btn btn-ghost btn-xs">
+              {/* <button className="btn btn-ghost btn-xs">
                 <FaPen className="text-gray-500" />
-              </button>
+              </button> */}
             </div>
-            <p className="font-bold">Animakid</p>
-            <p className="text-sm text-gray-500">animakid@gmail.com</p>
-            <p className="text-sm text-gray-500">+62 854 5565 6745</p>
+            <p className="font-bold">{detailOrder?.user?.name}</p>
+            <p className="text-sm text-gray-500">{detailOrder?.user?.email}</p>
+            <p className="text-sm text-gray-500">
+              {detailOrder?.address?.phone}
+            </p>
             <p className="text-sm">
-              Jl. Medan Merdeka Barat No.12, Gambir, Kecamatan Gambir, Kota
-              Jakarta Pusat, Daerah Khusus Ibukota Jakarta 10110
+              {[
+                detailOrder?.address?.address,
+                detailOrder?.address?.subdistrict,
+                detailOrder?.address?.city,
+                detailOrder?.address?.province,
+                detailOrder?.address?.postalCode,
+              ]
+                .filter(Boolean)
+                .join(", ")}
             </p>
           </div>
 
@@ -265,28 +317,27 @@ const DetailOrder = () => {
           <div>
             <h3 className="font-semibold mb-1">Notes</h3>
             <p className="text-sm text-gray-500">
-              Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do
-              eiusmod tempor incididunt ut labore et dolore magna aliqua.
+              {detailOrder?.address?.note}
             </p>
           </div>
 
           {/* Order Tracking */}
-          <div>
+          {/* <div>
             <h3 className="font-semibold mb-3">Order Tracking</h3>
             <ul className="timeline timeline-snap-icon max-md:timeline-compact timeline-vertical mt-4">
               {steps.map((s, i) => {
                 const tone = color[s.tone];
                 return (
-                  <li key={i}>
-                    {/* Left column: date time */}
-                    <div className="timeline-start md:text-end">
+                  <li key={i}> */}
+          {/* Left column: date time */}
+          {/* <div className="timeline-start md:text-end">
                       <time className="font-medium text-[15px] leading-5">
                         {s.at}
                       </time>
-                    </div>
+                    </div> */}
 
-                    {/* Middle: custom node (icon or dot) */}
-                    <div className="timeline-middle relative">
+          {/* Middle: custom node (icon or dot) */}
+          {/* <div className="timeline-middle relative">
                       {s.kind === "icon" ? (
                         <div
                           className={`grid h-8 w-8 place-items-center rounded-full ${tone.bg} text-white ring-2 ${tone.ring}`}
@@ -298,23 +349,23 @@ const DetailOrder = () => {
                           className={`block h-2 w-2 rounded-full ${tone.bg} ring-2 ${tone.ring}`}
                         />
                       )}
-                    </div>
+                    </div> */}
 
-                    {/* Right column: text */}
-                    <div className="timeline-end">
+          {/* Right column: text */}
+          {/* <div className="timeline-end">
                       <p className="font-semibold leading-snug">{s.title}</p>
                       {s.desc && (
                         <p className="text-sm text-gray-500">{s.desc}</p>
                       )}
-                    </div>
+                    </div> */}
 
-                    {/* Connector line (tipis & abu-abu) */}
-                    <hr className="bg-[#D1D5DB]" />
+          {/* Connector line (tipis & abu-abu) */}
+          {/* <hr className="bg-[#D1D5DB]" />
                   </li>
                 );
               })}
             </ul>
-          </div>
+          </div> */}
         </div>
       </div>
     </div>

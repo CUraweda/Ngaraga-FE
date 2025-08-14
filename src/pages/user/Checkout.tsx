@@ -1,8 +1,5 @@
-"use client";
-
 import { useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { CheckoutForm } from "@/components/checkout/CheckoutForm";
 import { AddressManager } from "@/components/checkout/AddressManager";
 import { DeliveryOptions } from "@/components/checkout/DeliveryOptions";
 import { PaymentOptions } from "@/components/checkout/PaymentOptions";
@@ -10,7 +7,7 @@ import { OrderSummary } from "@/components/checkout/OrderSummary";
 import { CheckoutSteps } from "@/components/checkout/CheckoutSteps";
 import { useCheckoutStore } from "@/store/checkout.store";
 import { toast } from "react-hot-toast";
-import { PickupOptions } from "@/components/checkout/PickupOptions";
+import userStore from "@/store/user.store";
 
 export interface CheckoutStep {
   number: number;
@@ -35,7 +32,13 @@ export interface CustomerData {
 }
 
 export interface Address {
-  id: string;
+  label: any;
+  province: any;
+  city: any;
+  addressId: any; // <-- ID tujuan untuk ongkir (receiver_destination_id)
+  subdistrict: any;
+  postalCode: any;
+  id: string; // <-- UUID alamat (dipakai untuk transaction.addressId)
   name: string;
   phone: string;
   address: string;
@@ -54,9 +57,7 @@ const Checkout = () => {
     currentStep,
     setCurrentStep,
     customerType,
-    setCustomerType,
     deliveryMethod,
-    setDeliveryMethod,
     selectedDelivery,
     setSelectedDelivery,
     selectedPayment,
@@ -66,44 +67,38 @@ const Checkout = () => {
     customerData,
     setCustomerData,
     addresses,
-    addAddress,
-    updateAddress,
-    deleteAddress,
     isLoading,
     setIsLoading,
     errors,
     setErrors,
     clearErrors,
     selectedPickupTime,
-    setSelectedPickupTime,
+
+    // cart & shipping
+    fetchCartItems,
+    cartGrandTotal,
+    shippingOptions,
+    shippingLoading,
+    shippingError,
+    calculatePostage,
+
+    // transaction
+    createTransaction,
   } = useCheckoutStore();
 
-  // Initialize with mock data
+  const { getUser, user } = userStore();
+
   useEffect(() => {
-    // Mock existing customer addresses
-    const mockAddresses: Address[] = [
-      {
-        id: "1",
-        name: "Animakid",
-        phone: "+62 854 5565 6745",
-        address:
-          "Jl. Medan Merdeka Barat No.12, Gambir, Kecamatan Gambir, Kota Jakarta Pusat, Daerah Khusus Ibukota Jakarta 10110",
-        isDefault: true,
-      },
-      {
-        id: "2",
-        name: "Animakid",
-        phone: "+62 854 5565 6745",
-        address: "Jl. Sudirman No.45, Jakarta Selatan, DKI Jakarta 12190",
-        isDefault: false,
-      },
-    ];
+    (async () => {
+      if (!user?.id) await getUser();
+      const uid = userStore.getState().user?.id;
+      if (uid) {
+        await fetchCartItems(uid as string);
+      }
+    })();
+  }, [fetchCartItems]);
 
-    // Set mock addresses
-    mockAddresses.forEach((addr) => addAddress(addr));
-    setSelectedAddress(mockAddresses[0]);
-
-    // Set default customer data for new customer form
+  useEffect(() => {
     setCustomerData({
       name: "",
       email: "",
@@ -139,59 +134,61 @@ const Checkout = () => {
     },
   ];
 
-  const deliveryOptions = [
-    {
-      id: "anteraja",
-      name: "Anter Aja",
-      time: "3-4 Days",
-      price: 15000,
-      logo: "/placeholder.svg?height=40&width=80&text=AnterAja",
-    },
-    {
-      id: "jne",
-      name: "JNE",
-      time: "3-4 Days",
-      price: 15000,
-      logo: "/placeholder.svg?height=40&width=80&text=JNE",
-    },
-    {
-      id: "idexpress",
-      name: "ID Express",
-      time: "3-4 Days",
-      price: 15000,
-      logo: "/placeholder.svg?height=40&width=80&text=IDExpress",
-    },
-  ];
+  // Mapping shippingOptions -> DeliveryOptions
+  const deliveryOptions =
+    shippingOptions.length > 0
+      ? shippingOptions.map((o) => ({
+          id: o.id,
+          name: `${o.shipping_name} ${o.service_name}`,
+          time: o.etd || "-",
+          price: o.shipping_cost_net, // ⬅️ pakai NET untuk UI & total
+          raw: o,
+          logo: `/placeholder.svg?height=40&width=80&text=${encodeURIComponent(
+            o.shipping_name
+          )}`,
+        }))
+      : [
+          {
+            id: "placeholder-1",
+            name: "—",
+            time: "-",
+            price: 0,
+            logo: "/placeholder.svg?height=40&width=80&text=—",
+          },
+        ];
 
   const paymentOptions = [
     {
-      id: "bca",
+      id: "BCAVA",
       name: "Bank BCA",
       logo: "/placeholder.svg?height=40&width=80&text=BCA",
     },
     {
-      id: "bni",
+      id: "BNIVA",
       name: "Bank BNI",
       logo: "/placeholder.svg?height=40&width=80&text=BNI",
     },
     {
-      id: "bri",
+      id: "BRIVA",
       name: "Bank BRI",
       logo: "/placeholder.svg?height=40&width=80&text=BRI",
     },
     {
-      id: "qris",
+      id: "QRIS",
       name: "Qris",
       logo: "/placeholder.svg?height=40&width=80&text=QRIS",
     },
   ];
 
-  const subtotal = totalAmount || 0;
+  // Gunakan grand total dari API cart sebagai subtotal (lebih konsisten)
+  const subtotal = cartGrandTotal || totalAmount || 0;
+
   const selectedDeliveryOption = deliveryOptions.find(
     (d) => d.id === selectedDelivery
   );
-  const shipping = selectedDeliveryOption?.price || 15000;
-  const discount = 100000;
+  const shipping = selectedDeliveryOption?.price ?? 0;
+
+  const discount = 0;
   const vat = Math.round((subtotal + shipping - discount) * 0.11);
   const total = subtotal + shipping - discount + vat;
 
@@ -199,13 +196,11 @@ const Checkout = () => {
     clearErrors();
     const newErrors: Record<string, string> = {};
 
-    // Only validate customer data for new customers
     if (customerType === "new") {
       if (!customerData.name.trim()) newErrors.name = "Name is required";
       if (!customerData.email.trim()) newErrors.email = "Email is required";
       if (!customerData.phone.trim()) newErrors.phone = "Phone is required";
 
-      // Only validate address for delivery mode
       if (deliveryMethod === "delivery") {
         if (!customerData.addressDetails.trim())
           newErrors.addressDetails = "Address details is required";
@@ -213,15 +208,9 @@ const Checkout = () => {
           newErrors.postalCode = "Postal code is required";
       }
     } else {
-      // Only validate address selection for delivery mode
       if (deliveryMethod === "delivery" && !selectedAddress) {
         newErrors.address = "Please select an address";
       }
-    }
-
-    // Add pickup time validation
-    if (deliveryMethod === "pickup" && !selectedPickupTime) {
-      newErrors.pickupTime = "Please select a pickup time";
     }
 
     if (deliveryMethod === "delivery") {
@@ -235,7 +224,6 @@ const Checkout = () => {
       setErrors(newErrors);
       return false;
     }
-
     return true;
   };
 
@@ -246,14 +234,33 @@ const Checkout = () => {
     }
 
     setIsLoading(true);
-
-    // Simulate API call
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      setCurrentStep(2);
-      toast.success("Information saved successfully");
-    } catch (error) {
-      toast.error("Failed to save information");
+      const uid = userStore.getState().user?.id as string | undefined;
+      if (!uid) throw new Error("User belum login.");
+      if (!selectedAddress?.id) throw new Error("Alamat belum dipilih.");
+      if (!selectedDelivery)
+        throw new Error("Metode pengiriman belum dipilih.");
+
+      // Buat transaksi ke backend
+      await createTransaction({
+        userId: uid,
+        subTotal: subtotal,
+        discount,
+        tax: vat,
+      });
+
+      toast.success("Payment processed successfully!");
+      setCurrentStep(2); // atau 3 kalau mau langsung selesai
+
+      // Opsional: redirect langsung ke order success
+      // navigate("/order-success", { state: { ... } });
+    } catch (error: any) {
+      console.error(error);
+      toast.error(
+        error?.response?.data?.message ||
+          error?.message ||
+          "Payment failed. Please try again."
+      );
     } finally {
       setIsLoading(false);
     }
@@ -261,20 +268,35 @@ const Checkout = () => {
 
   const handlePayNow = async () => {
     setIsLoading(true);
-
     try {
-      // Simulate payment processing
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      const uid = userStore.getState().user?.id as string | undefined;
+      if (!uid) throw new Error("User belum login.");
+      if (!selectedAddress?.id) throw new Error("Alamat belum dipilih.");
+      if (!selectedDelivery)
+        throw new Error("Metode pengiriman belum dipilih.");
 
-      // Mock payment success
+      // Buat transaksi ke backend
+      const res = await createTransaction({
+        userId: uid,
+        subTotal: subtotal, // dari cartGrandTotal
+        discount, // variabel discount di halaman ini
+        tax: vat, // variabel VAT di halaman ini
+      });
+
+      // (opsional) jika backend mengembalikan instruksi/URL pembayaran, kamu bisa arahkan user di sini
+      // contoh:
+      // if (res?.data?.paymentUrl) {
+      //   window.location.href = res.data.paymentUrl;
+      //   return;
+      // }
+
       toast.success("Payment processed successfully!");
       setCurrentStep(3);
 
-      // Navigate to success page after delay
       setTimeout(() => {
         navigate("/order-success", {
           state: {
-            orderId: "ORD-" + Date.now(),
+            orderId: res?.data?.transactionId || "ORD-" + Date.now(),
             total,
             paymentMethod: paymentOptions.find((p) => p.id === selectedPayment)
               ?.name,
@@ -293,55 +315,27 @@ const Checkout = () => {
           },
         });
       }, 1500);
-    } catch (error) {
-      toast.error("Payment failed. Please try again.");
+    } catch (error: any) {
+      console.error(error);
+      toast.error(
+        error?.response?.data?.message ||
+          error?.message ||
+          "Payment failed. Please try again."
+      );
     } finally {
       setIsLoading(false);
     }
   };
 
+  // Saat user memilih alamat → set & langsung hit calculate (pakai address.addressId untuk ongkir)
   const handleAddressSelect = (address: Address) => {
     setSelectedAddress(address);
+    void calculatePostage(address.addressId);
     toast.success("Address selected");
-  };
-
-  const handleAddressEdit = (address: Address) => {
-    updateAddress(address.id, address);
-    toast.success("Address updated successfully");
-  };
-
-  const handleAddressDelete = (addressId: string) => {
-    if (addresses.length <= 1) {
-      toast.error("You must have at least one address");
-      return;
-    }
-
-    deleteAddress(addressId);
-
-    // If deleted address was selected, select the first remaining address
-    if (selectedAddress?.id === addressId) {
-      const remainingAddresses = addresses.filter((a) => a.id !== addressId);
-      if (remainingAddresses.length > 0) {
-        setSelectedAddress(remainingAddresses[0]);
-      }
-    }
-
-    toast.success("Address deleted successfully");
-  };
-
-  const handleAddNewAddress = (newAddress: Omit<Address, "id">) => {
-    const address: Address = {
-      ...newAddress,
-      id: Date.now().toString(),
-    };
-    addAddress(address);
-    setSelectedAddress(address);
-    toast.success("New address added successfully");
   };
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 py-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-8">Checkout</h1>
 
@@ -352,199 +346,34 @@ const Checkout = () => {
           <div className="lg:col-span-2">
             {currentStep === 1 && (
               <div className="bg-white rounded-lg shadow-sm p-6">
-                {/* Customer Type Toggle */}
-                <div className="mb-6">
-                  <div className="flex space-x-4">
-                    <button
-                      onClick={() => setCustomerType("existing")}
-                      className={`px-4 py-2 rounded-md border ${
-                        customerType === "existing"
-                          ? "border-yellow-500 bg-yellow-50 text-yellow-700"
-                          : "border-gray-300 text-gray-700"
-                      }`}
-                    >
-                      Existing Customer
-                    </button>
-                    <button
-                      onClick={() => setCustomerType("new")}
-                      className={`px-4 py-2 rounded-md border ${
-                        customerType === "new"
-                          ? "border-yellow-500 bg-yellow-50 text-yellow-700"
-                          : "border-gray-300 text-gray-700"
-                      }`}
-                    >
-                      New Customer
-                    </button>
+                <AddressManager
+                  addresses={addresses}
+                  selectedAddress={selectedAddress}
+                  onAddressSelect={handleAddressSelect}
+                  onAddressEdit={() => {}}
+                  onAddressDelete={() => {}}
+                  onAddNewAddress={() => {}}
+                  error={errors.address}
+                />
+
+                {/* Status kalkulasi ongkir */}
+                {shippingLoading && (
+                  <div className="mb-2 text-sm text-gray-500">
+                    Calculating shipping options…
                   </div>
-                </div>
-
-                {/* Delivery Method */}
-                <div className="mb-6">
-                  <div className="flex space-x-4 mb-6">
-                    <button
-                      onClick={() => setDeliveryMethod("delivery")}
-                      className={`flex items-center px-4 py-2 rounded-md border ${
-                        deliveryMethod === "delivery"
-                          ? "border-yellow-500 bg-yellow-50 text-yellow-700"
-                          : "border-gray-300"
-                      }`}
-                    >
-                      <svg
-                        className="w-5 h-5 mr-2"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"
-                        />
-                      </svg>
-                      Delivery
-                    </button>
-                    <button
-                      onClick={() => setDeliveryMethod("pickup")}
-                      className={`flex items-center px-4 py-2 rounded-md border ${
-                        deliveryMethod === "pickup"
-                          ? "border-yellow-500 bg-yellow-50 text-yellow-700"
-                          : "border-gray-300"
-                      }`}
-                    >
-                      <svg
-                        className="w-5 h-5 mr-2"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-                        />
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-                        />
-                      </svg>
-                      Pick Up
-                    </button>
-                  </div>
-                </div>
-
-                {/* Address Section - Only show for delivery mode */}
-                {deliveryMethod === "delivery" &&
-                  (customerType === "existing" ? (
-                    <AddressManager
-                      addresses={addresses}
-                      selectedAddress={selectedAddress}
-                      onAddressSelect={handleAddressSelect}
-                      onAddressEdit={handleAddressEdit}
-                      onAddressDelete={handleAddressDelete}
-                      onAddNewAddress={handleAddNewAddress}
-                      error={errors.address}
-                    />
-                  ) : (
-                    <CheckoutForm
-                      customerData={customerData}
-                      onCustomerDataChange={setCustomerData}
-                      errors={errors}
-                      deliveryMethod={deliveryMethod}
-                    />
-                  ))}
-
-                {/* Customer Info for Pickup - Only show basic info for pickup mode */}
-                {deliveryMethod === "pickup" && customerType === "new" && (
-                  <div className="mb-8">
-                    <h3 className="text-lg font-semibold mb-4">
-                      Customer Information
-                    </h3>
-                    <div className="space-y-4">
-                      <div>
-                        <input
-                          type="text"
-                          placeholder="Full Name"
-                          value={customerData.name}
-                          onChange={(e) =>
-                            setCustomerData({
-                              ...customerData,
-                              name: e.target.value,
-                            })
-                          }
-                          className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 ${
-                            errors.name ? "border-red-500" : "border-gray-300"
-                          }`}
-                        />
-                        {errors.name && (
-                          <p className="text-red-500 text-sm mt-1">
-                            {errors.name}
-                          </p>
-                        )}
-                      </div>
-                      <div>
-                        <input
-                          type="email"
-                          placeholder="Email"
-                          value={customerData.email}
-                          onChange={(e) =>
-                            setCustomerData({
-                              ...customerData,
-                              email: e.target.value,
-                            })
-                          }
-                          className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 ${
-                            errors.email ? "border-red-500" : "border-gray-300"
-                          }`}
-                        />
-                        {errors.email && (
-                          <p className="text-red-500 text-sm mt-1">
-                            {errors.email}
-                          </p>
-                        )}
-                      </div>
-                      <div>
-                        <input
-                          type="tel"
-                          placeholder="Phone Number"
-                          value={customerData.phone}
-                          onChange={(e) =>
-                            setCustomerData({
-                              ...customerData,
-                              phone: e.target.value,
-                            })
-                          }
-                          className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 ${
-                            errors.phone ? "border-red-500" : "border-gray-300"
-                          }`}
-                        />
-                        {errors.phone && (
-                          <p className="text-red-500 text-sm mt-1">
-                            {errors.phone}
-                          </p>
-                        )}
-                      </div>
-                    </div>
+                )}
+                {shippingError && (
+                  <div className="mb-2 text-sm text-red-600">
+                    {shippingError}
                   </div>
                 )}
 
-                {deliveryMethod === "delivery" ? (
-                  <DeliveryOptions
-                    options={deliveryOptions}
-                    selectedDelivery={selectedDelivery}
-                    onDeliverySelect={setSelectedDelivery}
-                    error={errors.delivery}
-                  />
-                ) : (
-                  <PickupOptions
-                    selectedTime={selectedPickupTime}
-                    onTimeSelect={setSelectedPickupTime}
-                    error={errors.pickupTime}
-                  />
-                )}
+                <DeliveryOptions
+                  options={deliveryOptions}
+                  selectedDelivery={selectedDelivery}
+                  onDeliverySelect={setSelectedDelivery}
+                  error={errors.delivery}
+                />
 
                 <PaymentOptions
                   options={paymentOptions}
@@ -557,104 +386,197 @@ const Checkout = () => {
 
             {currentStep === 2 && (
               <div className="bg-white rounded-lg shadow-sm p-6">
-                <h3 className="text-lg font-semibold mb-4">
-                  Payment Confirmation
-                </h3>
-                <p className="text-gray-600 mb-6">
-                  Please review your order details before completing the
-                  payment.
-                </p>
-
-                <div className="space-y-4 mb-6">
-                  <div className="flex justify-between">
-                    <span>Selected Payment Method:</span>
-                    <span className="font-medium">
-                      {
-                        paymentOptions.find((p) => p.id === selectedPayment)
-                          ?.name
-                      }
-                    </span>
-                  </div>
-
-                  {deliveryMethod === "delivery" ? (
-                    <>
-                      <div className="flex justify-between">
-                        <span>Selected Delivery:</span>
-                        <span className="font-medium">
-                          {
-                            deliveryOptions.find(
-                              (d) => d.id === selectedDelivery
-                            )?.name
-                          }
-                        </span>
-                      </div>
-                      {customerType === "existing" && selectedAddress && (
-                        <div className="flex justify-between">
-                          <span>Delivery Address:</span>
-                          <span className="font-medium text-right max-w-xs">
-                            {selectedAddress.address}
-                          </span>
-                        </div>
-                      )}
-                    </>
-                  ) : (
-                    <>
-                      <div className="flex justify-between">
-                        <span>Pickup Time:</span>
-                        <span className="font-medium">
-                          {selectedPickupTime}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Pickup Location:</span>
-                        <span className="font-medium text-right max-w-xs">
-                          Ngaraga by Dolanan
-                        </span>
-                      </div>
-                      {customerType === "existing" && selectedAddress && (
-                        <div className="flex justify-between">
-                          <span>Customer:</span>
-                          <span className="font-medium">
-                            {selectedAddress.name}
-                          </span>
-                        </div>
-                      )}
-                    </>
-                  )}
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-2xl font-bold text-gray-900">Payment</h3>
                 </div>
 
-                <button
-                  onClick={handlePayNow}
-                  disabled={isLoading}
-                  className="w-full bg-yellow-500 text-white py-3 rounded-md font-medium hover:bg-yellow-600 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center"
-                >
-                  {isLoading ? (
-                    <>
+                <div className="flex justify-between items-start mb-6">
+                  <div>
+                    <p className="text-sm text-gray-600 mb-1">Order ID</p>
+                    <p className="font-bold text-lg">
+                      ORD-{Date.now().toString().slice(-8)}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm text-gray-600 mb-1">Payment Within</p>
+                    <div className="flex items-center space-x-2 text-lg font-bold">
+                      <span>23</span>
+                      <span className="text-gray-400">:</span>
+                      <span>59</span>
+                      <span className="text-gray-400">:</span>
+                      <span>45</span>
+                    </div>
+                    <div className="flex items-center space-x-4 text-xs text-gray-500">
+                      <span>Hours</span>
+                      <span>Minutes</span>
+                      <span>Seconds</span>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Due on{" "}
+                      {new Date(
+                        Date.now() + 24 * 60 * 60 * 1000
+                      ).toLocaleDateString("en-GB", {
+                        day: "2-digit",
+                        month: "short",
+                        year: "numeric",
+                      })}
+                      , 15:17
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mb-6">
+                  <p className="text-sm text-gray-600 mb-1">Total Payment</p>
+                  <p className="text-3xl font-bold text-yellow-600">
+                    Rp {total.toLocaleString("id-ID")}
+                  </p>
+                </div>
+
+                <div className="border rounded-lg p-4 mb-6">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      {(() => {
+                        const selectedBank = paymentOptions.find(
+                          (p) => p.id === selectedPayment
+                        );
+                        const getBankColor = (bankId: string) => {
+                          switch (bankId) {
+                            case "BCAVA":
+                              return {
+                                bg: "bg-blue-600",
+                                text: "text-white",
+                                short: "BCA",
+                              };
+                            case "BNIVA":
+                              return {
+                                bg: "bg-orange-500",
+                                text: "text-white",
+                                short: "BNI",
+                              };
+                            case "BRIVA":
+                              return {
+                                bg: "bg-blue-800",
+                                text: "text-white",
+                                short: "BRI",
+                              };
+                            case "QRIS":
+                              return {
+                                bg: "bg-red-600",
+                                text: "text-white",
+                                short: "QRIS",
+                              };
+                            default:
+                              return {
+                                bg: "bg-blue-600",
+                                text: "text-white",
+                                short: "BANK",
+                              };
+                          }
+                        };
+                        const bankStyle = getBankColor(selectedPayment || "");
+                        return (
+                          <>
+                            <div
+                              className={`w-12 h-8 ${bankStyle.bg} rounded flex items-center justify-center`}
+                            >
+                              <span
+                                className={`${bankStyle.text} text-xs font-bold`}
+                              >
+                                {bankStyle.short}
+                              </span>
+                            </div>
+                            <span className="font-medium">
+                              {selectedBank?.name || "Select Payment"}
+                            </span>
+                          </>
+                        );
+                      })()}
+                    </div>
+                    <button
+                      onClick={() => setCurrentStep(1)}
+                      className="px-4 py-2 border border-yellow-500 text-yellow-600 rounded-md hover:bg-yellow-50 transition-colors"
+                    >
+                      Change Payment
+                    </button>
+                  </div>
+
+                  <div className="mt-4 grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm text-gray-600 mb-1">
+                        Virtual Account Name
+                      </p>
+                      <p className="font-medium">Ngaraga</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600 mb-1">
+                        Virtual Account Number
+                      </p>
+                      <div className="flex items-center space-x-2">
+                        <p className="font-medium">
+                          8017{Date.now().toString().slice(-8)}
+                        </p>
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText(
+                              `8017${Date.now().toString().slice(-8)}`
+                            );
+                            toast.success("Virtual account number copied!");
+                          }}
+                          className="text-gray-400 hover:text-gray-600 transition-colors"
+                        >
+                          <svg
+                            className="w-4 h-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                            />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-6">
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                    <div className="flex items-start">
                       <svg
-                        className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                        className="w-5 h-5 text-yellow-600 mr-2 mt-0.5"
                         fill="none"
+                        stroke="currentColor"
                         viewBox="0 0 24 24"
                       >
-                        <circle
-                          className="opacity-25"
-                          cx="12"
-                          cy="12"
-                          r="10"
-                          stroke="currentColor"
-                          strokeWidth="4"
-                        ></circle>
                         <path
-                          className="opacity-75"
-                          fill="currentColor"
-                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                        ></path>
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
                       </svg>
-                      Processing Payment...
-                    </>
-                  ) : (
-                    "Pay Now"
-                  )}
-                </button>
+                      <div>
+                        <h5 className="font-medium text-yellow-800 mb-1">
+                          Important Notes:
+                        </h5>
+                        <ul className="text-sm text-yellow-700 space-y-1">
+                          <li>
+                            • Payment must be completed within the time limit
+                          </li>
+                          <li>
+                            • Use the exact virtual account number provided
+                          </li>
+                          <li>• Payment confirmation will be sent via email</li>
+                          <li>• Contact support if you encounter any issues</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
 
