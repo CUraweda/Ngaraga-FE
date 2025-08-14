@@ -2,6 +2,7 @@ import { createBrowserRouter } from "react-router-dom";
 import { listedParam, listedParamAdmin } from "./listed.param";
 import ProtectedLayout from "./ProtectedLayout";
 import { lazy, Suspense } from "react";
+import Loading from "@/components/Loading";
 
 const Login = lazy(() => import("@/pages/Login"));
 const Register = lazy(() => import("@/pages/user/Register"));
@@ -30,7 +31,7 @@ const Route: ReturnType<typeof createBrowserRouter> = createBrowserRouter([
   {
     path: "*",
     element: (
-      <Suspense fallback={<div>Loading...</div>}>
+      <Suspense fallback={<Loading/>}>
         <Home />
       </Suspense>
     ),
@@ -38,7 +39,7 @@ const Route: ReturnType<typeof createBrowserRouter> = createBrowserRouter([
   {
     path: listedParam.signin,
     element: (
-      <Suspense fallback={<div>Loading...</div>}>
+      <Suspense fallback={<Loading/>}>
         <Login />
       </Suspense>
     ),
@@ -46,7 +47,7 @@ const Route: ReturnType<typeof createBrowserRouter> = createBrowserRouter([
   {
     path: listedParam.signup,
     element: (
-      <Suspense fallback={<div>Loading...</div>}>
+      <Suspense fallback={<Loading/>}>
         <Register />
       </Suspense>
     ),
@@ -54,7 +55,7 @@ const Route: ReturnType<typeof createBrowserRouter> = createBrowserRouter([
   {
     path: listedParam.home,
     element: (
-      <Suspense fallback={<div>Loading...</div>}>
+      <Suspense fallback={<Loading/>}>
         <LayoutHome />
       </Suspense>
     ),
@@ -72,7 +73,7 @@ const Route: ReturnType<typeof createBrowserRouter> = createBrowserRouter([
     path: listedParam.home,
     element: (
       <ProtectedLayout>
-        <Suspense fallback={<div>Loading...</div>}>
+        <Suspense fallback={<Loading/>}>
           <LayoutHome />
         </Suspense>
       </ProtectedLayout>
@@ -83,7 +84,7 @@ const Route: ReturnType<typeof createBrowserRouter> = createBrowserRouter([
     path: listedParamAdmin.home,
     element: (
       <ProtectedLayout>
-        <Suspense fallback={<div>Loading...</div>}>
+        <Suspense fallback={<Loading/>}>
           <LayoutAdmin />
         </Suspense>
       </ProtectedLayout>
