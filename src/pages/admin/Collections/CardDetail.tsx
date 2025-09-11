@@ -8,6 +8,7 @@ import { QRCodeCanvas } from "qrcode.react";
 import Modal, { closeModal, openModal } from "@/components/ui/Modal";
 import JSZip from "jszip";
 import { saveAs } from "file-saver";
+import { formatRupiah } from "@/helper/formatRupiah";
 
 const CardDetail = () => {
   const [searchParams] = useSearchParams();
@@ -175,7 +176,7 @@ const CardDetail = () => {
                   </tr>
                   <tr>
                     <td>Price</td>
-                    <td>{cardItem?.price}</td>
+                    <td>{formatRupiah(cardItem?.price)}</td>
                   </tr>
                 </tbody>
               </table>
