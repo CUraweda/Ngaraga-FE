@@ -48,14 +48,7 @@ const DetailCard = () => {
 
   useEffect(() => {
     if (type === "special") {
-      if (
-        specialCard?.missingCards?.length > 0 &&
-        specialCard?.ownedCards?.length > 0
-      ) {
-        setSpecial(true);
-      } else {
-        setSpecial(false);
-      }
+       setSpecial(true);
     } else {
       setSpecial(false);
     }
