@@ -105,11 +105,11 @@ interface CheckoutState {
   // Payment status
   transactionId: string | null;
   setTransactionId: (id: string | null) => void;
-  paymentStatus: "PENDING" | "SUCCESS" | "FAILED" | null;
+  paymentStatus: string | null;
+  paymentMethode: string | null;
+  qrisurl: string | null;
   isCheckingPayment: boolean;
-  checkPaymentStatus: (
-    transactionId: string
-  ) => Promise<"PENDING" | "SUCCESS" | "FAILED">;
+  checkPaymentStatus: (transactionId: string) => Promise<any>;
   startPaymentStatusPolling: (transactionId: string) => void;
   stopPaymentStatusPolling: () => void;
   paymentPollingInterval: NodeJS.Timeout | null;
@@ -135,6 +135,7 @@ export const useCheckoutStore = create<CheckoutState>((set, get) => ({
   selectedPickupTime: "08:00",
   selectedAddress: null,
   addresses: [],
+  qrisurl: null,
   customerData: {
     name: "",
     email: "",
@@ -162,6 +163,7 @@ export const useCheckoutStore = create<CheckoutState>((set, get) => ({
 
   transactionId: null,
   paymentStatus: null,
+  paymentMethode: null,
   isCheckingPayment: false,
   paymentPollingInterval: null,
 
@@ -348,30 +350,13 @@ export const useCheckoutStore = create<CheckoutState>((set, get) => ({
 
   // ====== Transaction (Create) ======
   createTransaction: async ({ userId, subTotal, discount, tax }) => {
-    const {
-      selectedAddress,
-      selectedPayment,
-      selectedDelivery,
-      shippingOptions,
-      cartItems,
-      cartGrandTotal,
-    } = get();
-
-    if (!selectedAddress?.id) {
-      throw new Error("Address belum dipilih.");
-    }
-    if (!userId) {
-      throw new Error("User ID tidak ditemukan.");
-    }
-
-    // Ambil opsi shipping terpilih dari shippingOptions
-    const pick = shippingOptions.find((o) => o.id === selectedDelivery);
+    const { selectedPayment, cartItems, cartGrandTotal } = get();
 
     // Mapping UI -> API
     const paymentMethodMap: Record<string, string> = {
-      BCAVA: "BCA",
-      BNIVA: "BNI",
-      BRIVA: "BRI",
+      BCAVA: "BCAVA",
+      BNIVA: "BNIVA",
+      BRIVA: "BRIVA",
       QRIS: "QRIS",
       bca: "BCA",
       bni: "BNI",
@@ -383,45 +368,19 @@ export const useCheckoutStore = create<CheckoutState>((set, get) => ({
       String(selectedPayment || "").toUpperCase();
 
     const _subTotal = Number(subTotal ?? cartGrandTotal ?? 0);
-    const _shippingCost = pick ? Number(pick.shipping_cost_net ?? 0) : 0; // gunakan NET utk transaksi
     const _discount = Number(discount ?? 0);
     const _tax = Number(tax ?? 0);
 
     const cartId = cartItems.map((c) => c.id);
 
-    const shipping = pick
-      ? {
-          name: pick.shipping_name,
-          serviceName: pick.service_name,
-          shippingCost: Number(pick.shipping_cost), // gross untuk info
-          cashback: Number(pick.shipping_cashback),
-          additional: 0,
-          codValue: 0,
-          estimatedDate: String(pick.etd ?? "-"),
-          description: "",
-        }
-      : {
-          name: "",
-          serviceName: "",
-          shippingCost: 0,
-          cashback: 0,
-          additional: 0,
-          codValue: 0,
-          estimatedDate: "-",
-          description: "",
-        };
-
     const payload = {
       transaction: {
-        addressId: selectedAddress.id, // UUID string
         userId,
         paymentMethod,
         subTotal: _subTotal,
-        shippingCost: _shippingCost,
         discount: _discount,
         tax: _tax,
       },
-      shipping,
       cartId, // ["uuid", ...]
     };
 
@@ -443,7 +402,10 @@ export const useCheckoutStore = create<CheckoutState>((set, get) => ({
 
     if (createdId) {
       set({
+        paymentMethode: paymentMethod,
         transactionId: String(createdId),
+        qrisurl: data?.data?.payment?.QrisUrl,
+        paymentStatus: "PENDING",
         // Jika backend kasih expiry, gunakan itu; jika tidak, set default 24 jam
         paymentExpiresAt: expiresAtMs ?? Date.now() + 24 * 60 * 60 * 1000,
       });
@@ -463,37 +425,19 @@ export const useCheckoutStore = create<CheckoutState>((set, get) => ({
       const { data } = await apiClient.get(
         `/api/v1/transaction/show-one/${transactionId}`
       );
-
-      // Robust path untuk status
-      const paymentStatus: "PENDING" | "SUCCESS" | "FAILED" =
-        data?.data?.TransactionPayment?.[0]?.status ??
-        data?.payment?.status ??
-        data?.data?.payment?.status ??
-        "PENDING";
-
       set({
-        paymentStatus,
+        paymentStatus : data?.data?.TransactionPayment[0].status ,
         isCheckingPayment: false,
+        paymentMethode: data.data.paymentMethod,
+        qrisurl: data?.data?.TransactionPayment[0]?.QrisUrl,
       });
 
-      if (paymentStatus === "SUCCESS" || paymentStatus === "FAILED") {
-        get().stopPaymentStatusPolling();
-        get().stopPaymentTimer();
-        if (paymentStatus === "SUCCESS") {
-          set({ currentStep: 3 });
-        }
-      }
-
-      return paymentStatus;
+      // return paymentStatus;
     } catch (error: any) {
       console.error("Failed to check payment status:", error);
       set({
         isCheckingPayment: false,
-        paymentStatus: "FAILED",
       });
-      get().stopPaymentStatusPolling();
-      get().stopPaymentTimer();
-      return "FAILED";
     }
   },
 
