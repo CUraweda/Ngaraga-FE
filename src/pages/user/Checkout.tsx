@@ -2,8 +2,6 @@
 
 import { useEffect, useMemo } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { AddressManager } from "@/components/checkout/AddressManager";
-import { DeliveryOptions } from "@/components/checkout/DeliveryOptions";
 import { PaymentOptions } from "@/components/checkout/PaymentOptions";
 import { OrderSummary } from "@/components/checkout/OrderSummary";
 import { CheckoutSteps } from "@/components/checkout/CheckoutSteps";
@@ -60,13 +58,12 @@ const Checkout = () => {
     setCurrentStep,
     deliveryMethod,
     selectedDelivery,
-    setSelectedDelivery,
+
     selectedPayment,
     setSelectedPayment,
-    selectedAddress,
-    setSelectedAddress,
+
     setCustomerData,
-    addresses,
+
     isLoading,
     setIsLoading,
     errors,
@@ -85,9 +82,6 @@ const Checkout = () => {
     fetchCartItems,
     cartGrandTotal,
     shippingOptions,
-    shippingLoading,
-    shippingError,
-    calculatePostage,
 
     // transaction
     createTransaction,
@@ -171,14 +165,6 @@ const Checkout = () => {
   };
 
 
-  // Pilih alamat → hitung ongkir
-  const handleAddressSelect = (address: Address) => {
-    setSelectedAddress(address);
-    void calculatePostage(address.addressId);
-    toast.success("Address selected");
-  };
-
-
   const getExpiryDate = () => {
     if (!paymentExpiresAt) return "-";
     const dt = new Date(paymentExpiresAt);
@@ -214,26 +200,6 @@ const Checkout = () => {
     },
   ];
 
-  const deliveryOptions = shippingOptions.length
-    ? shippingOptions.map((o) => ({
-        id: o.id,
-        name: `${o.shipping_name} ${o.service_name}`,
-        time: o.etd || "-",
-        price: o.shipping_cost_net,
-        raw: o,
-        logo: `/placeholder.svg?height=40&width=80&text=${encodeURIComponent(
-          o.shipping_name
-        )}`,
-      }))
-    : [
-        {
-          id: "placeholder-1",
-          name: "—",
-          time: "-",
-          price: 0,
-          logo: "/placeholder.svg?height=40&width=80&text=—",
-        },
-      ];
 
   const paymentOptions = [
     {
@@ -270,35 +236,7 @@ const Checkout = () => {
           <div className="lg:col-span-2">
             {currentStep === 1 && (
               <div className="bg-white rounded-lg shadow-sm p-6">
-                <AddressManager
-                  addresses={addresses}
-                  selectedAddress={selectedAddress}
-                  onAddressSelect={handleAddressSelect}
-                  onAddressEdit={() => {}}
-                  onAddressDelete={() => {}}
-                  onAddNewAddress={() => {}}
-                  error={errors.address}
-                />
-
-                {/* Status kalkulasi ongkir */}
-                {shippingLoading && (
-                  <div className="mb-2 text-sm text-gray-500">
-                    Calculating shipping options…
-                  </div>
-                )}
-                {shippingError && (
-                  <div className="mb-2 text-sm text-red-600">
-                    {shippingError}
-                  </div>
-                )}
-
-                <DeliveryOptions
-                  options={deliveryOptions}
-                  selectedDelivery={selectedDelivery}
-                  onDeliverySelect={setSelectedDelivery}
-                  error={errors.delivery}
-                />
-
+               
                 <PaymentOptions
                   options={paymentOptions}
                   selectedPayment={selectedPayment}
