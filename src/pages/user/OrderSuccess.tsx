@@ -1,23 +1,9 @@
-"use client";
 
-import { useLocation, useNavigate } from "react-router-dom";
-import { useEffect } from "react";
-import { formatRupiah } from "@/helper/formatRupiah";
-import { MapPin, Clock, CreditCard, Truck } from "lucide-react";
+import {  useNavigate } from "react-router-dom";
 
 const OrderSuccess = () => {
-  const location = useLocation();
+ 
   const navigate = useNavigate();
-  const {
-    orderId,
-    total,
-    paymentMethod,
-    deliveryMethod,
-    deliveryOption,
-    pickupTime,
-    pickupLocation,
-    deliveryAddress,
-  } = location.state || {};
 
   // useEffect(() => {
   //   if (!orderId) {
@@ -71,14 +57,6 @@ const OrderSuccess = () => {
             </button>
           </div>
 
-          {/* Additional Info */}
-          <div className="mt-6 pt-6 border-t border-gray-200 text-center">
-            <p className="text-sm text-gray-500">
-              {deliveryMethod === "delivery"
-                ? "You will receive an email confirmation and tracking information shortly."
-                : "You will receive an email confirmation with pickup details shortly."}
-            </p>
-          </div>
         </div>
       </div>
     </div>
