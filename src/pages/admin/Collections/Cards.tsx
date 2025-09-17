@@ -15,6 +15,7 @@ import Select from "@/components/ui/Select";
 import { Message } from "@/components/error.field";
 import { useNavigate } from "react-router-dom";
 import { listedParamAdmin } from "@/constant/listed.param";
+import { formatRupiah } from "@/helper/formatRupiah";
 
 
 type props = {
@@ -279,7 +280,7 @@ const Cards = () => {
                         <td>{item.name}</td>
                         <td>{item.isSpecial ? <span className="badge badge-primary">Special</span> : <span className="badge badge-secondary">Regular</span>}</td>
                         <td>{item.category.name}</td>
-                        <td>{item.price}</td>
+                        <td>{formatRupiah(item.price)}</td>
                         <td>{item.stock}</td>
                         <td>{item.totalLinkedCardLists}</td>
                         <td className="join">

@@ -2,8 +2,6 @@
 
 import { useEffect, useMemo } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { AddressManager } from "@/components/checkout/AddressManager";
-import { DeliveryOptions } from "@/components/checkout/DeliveryOptions";
 import { PaymentOptions } from "@/components/checkout/PaymentOptions";
 import { OrderSummary } from "@/components/checkout/OrderSummary";
 import { CheckoutSteps } from "@/components/checkout/CheckoutSteps";
@@ -58,39 +56,32 @@ const Checkout = () => {
   const {
     currentStep,
     setCurrentStep,
-    customerType,
     deliveryMethod,
     selectedDelivery,
-    setSelectedDelivery,
+
     selectedPayment,
     setSelectedPayment,
-    selectedAddress,
-    setSelectedAddress,
-    customerData,
+
     setCustomerData,
-    addresses,
+
     isLoading,
     setIsLoading,
     errors,
-    setErrors,
+    paymentMethode,
     clearErrors,
+    qrisurl,
 
     // payment & transaction
     transactionId,
     paymentStatus,
     isCheckingPayment,
     checkPaymentStatus,
-    stopPaymentStatusPolling,
-    paymentTimer,
     paymentExpiresAt,
 
     // cart & shipping
     fetchCartItems,
     cartGrandTotal,
     shippingOptions,
-    shippingLoading,
-    shippingError,
-    calculatePostage,
 
     // transaction
     createTransaction,
@@ -124,11 +115,6 @@ const Checkout = () => {
   }, [setCustomerData]);
 
   // Cleanup polling saat unmount
-  useEffect(() => {
-    return () => {
-      stopPaymentStatusPolling();
-    };
-  }, [stopPaymentStatusPolling]);
 
   const subtotal = cartGrandTotal || totalAmount || 0;
 
@@ -144,83 +130,17 @@ const Checkout = () => {
 
   // Auto-redirect ke success (tetap)
   useEffect(() => {
-    if (paymentStatus === "SUCCESS" && currentStep === 3) {
+    if (paymentStatus === "SUCCESS" ) {
       toast.success("Payment confirmed! Redirecting to order success...");
-      setTimeout(() => {
-        navigate("/order-success", {
-          state: {
-            orderId: transactionId || "ORD-" + Date.now(),
-            total,
-            paymentMethod:
-              (["BCAVA", "BNIVA", "BRIVA", "QRIS"].includes(selectedPayment)
-                ? {
-                    BCAVA: "Bank BCA",
-                    BNIVA: "Bank BNI",
-                    BRIVA: "Bank BRI",
-                    QRIS: "Qris",
-                  }[selectedPayment as "BCAVA" | "BNIVA" | "BRIVA" | "QRIS"]
-                : selectedPayment) || "Payment",
-            deliveryMethod: deliveryMethod,
-            deliveryOption:
-              deliveryMethod === "delivery"
-                ? selectedDeliveryOption
-                  ? `${selectedDeliveryOption.shipping_name} ${selectedDeliveryOption.service_name}`
-                  : "-"
-                : "Pickup",
-            pickupTime: deliveryMethod === "pickup" ? null : null,
-            pickupLocation:
-              deliveryMethod === "pickup" ? "Ngaraga by Dolanan" : null,
-            deliveryAddress:
-              deliveryMethod === "delivery" && selectedAddress
-                ? selectedAddress.address
-                : null,
-          },
-        });
-      }, 1200);
+      navigate("/order-success");
     }
-  }, [
-    paymentStatus,
-    currentStep,
-    transactionId,
-    total,
-    selectedPayment,
-    deliveryMethod,
-    selectedDeliveryOption,
-    selectedAddress,
-    navigate,
-  ]);
+  }, [paymentStatus]);
 
   // Validasi Step 1 (tetap)
   const validateStep1 = (): boolean => {
     clearErrors();
-    const newErrors: Record<string, string> = {};
+    // const newErrors: Record<string, string> = {};
 
-    if (customerType === "new") {
-      if (!customerData.name.trim()) newErrors.name = "Name is required";
-      if (!customerData.email.trim()) newErrors.email = "Email is required";
-      if (!customerData.phone.trim()) newErrors.phone = "Phone is required";
-
-      if (deliveryMethod === "delivery") {
-        if (!customerData.addressDetails.trim())
-          newErrors.addressDetails = "Address details is required";
-        if (!customerData.postalCode.trim())
-          newErrors.postalCode = "Postal code is required";
-      }
-    } else {
-      if (deliveryMethod === "delivery" && !selectedAddress) {
-        newErrors.address = "Please select an address";
-      }
-    }
-
-    if (deliveryMethod === "delivery" && !selectedDelivery)
-      newErrors.delivery = "Please select a delivery option";
-
-    if (!selectedPayment) newErrors.payment = "Please select a payment method";
-
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
-      return false;
-    }
     return true;
   };
 
@@ -230,59 +150,20 @@ const Checkout = () => {
       toast.error("Please fill in all required fields");
       return;
     }
+    setCurrentStep(2);
 
-    setCurrentStep(2); // tampilkan Step 2 dulu agar UI terasa cepat
-
-    try {
-      const uid = userStore.getState().user?.id as string | undefined;
-      if (!uid) throw new Error("User belum login.");
-      if (!selectedAddress?.id) throw new Error("Alamat belum dipilih.");
-      if (!selectedDelivery)
-        throw new Error("Metode pengiriman belum dipilih.");
-
-      // Hanya buat transaksi jika belum ada
-      if (!transactionId) {
-        setIsLoading(true);
-        await createTransaction({
-          userId: uid,
-          subTotal: subtotal,
-          discount,
-          tax: vat,
-        });
-        // Store akan otomatis start polling & timer
-      } else {
-        // Kalau sudah ada, untuk jaga-jaga mulai cek sekali
-        void checkPaymentStatus(transactionId);
-      }
-    } catch (error: any) {
-      console.error(error);
-      toast.error(
-        error?.response?.data?.message ||
-          error?.message ||
-          "Gagal menginisiasi pembayaran."
-      );
-    } finally {
-      setIsLoading(false);
-    }
+    if (!transactionId) {
+      const uid = userStore.getState().user?.id ?? "";
+      setIsLoading(true);
+      await createTransaction({
+        userId: uid,
+        subTotal: subtotal,
+        discount,
+        tax: vat,
+      });
+    } 
   };
 
-  // Pilih alamat → hitung ongkir
-  const handleAddressSelect = (address: Address) => {
-    setSelectedAddress(address);
-    void calculatePostage(address.addressId);
-    toast.success("Address selected");
-  };
-
-  const formatTimer = (seconds: number) => {
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const secs = seconds % 60;
-    return {
-      hours: hours.toString().padStart(2, "0"),
-      minutes: minutes.toString().padStart(2, "0"),
-      seconds: secs.toString().padStart(2, "0"),
-    };
-  };
 
   const getExpiryDate = () => {
     if (!paymentExpiresAt) return "-";
@@ -319,26 +200,6 @@ const Checkout = () => {
     },
   ];
 
-  const deliveryOptions = shippingOptions.length
-    ? shippingOptions.map((o) => ({
-        id: o.id,
-        name: `${o.shipping_name} ${o.service_name}`,
-        time: o.etd || "-",
-        price: o.shipping_cost_net,
-        raw: o,
-        logo: `/placeholder.svg?height=40&width=80&text=${encodeURIComponent(
-          o.shipping_name
-        )}`,
-      }))
-    : [
-        {
-          id: "placeholder-1",
-          name: "—",
-          time: "-",
-          price: 0,
-          logo: "/placeholder.svg?height=40&width=80&text=—",
-        },
-      ];
 
   const paymentOptions = [
     {
@@ -375,35 +236,7 @@ const Checkout = () => {
           <div className="lg:col-span-2">
             {currentStep === 1 && (
               <div className="bg-white rounded-lg shadow-sm p-6">
-                <AddressManager
-                  addresses={addresses}
-                  selectedAddress={selectedAddress}
-                  onAddressSelect={handleAddressSelect}
-                  onAddressEdit={() => {}}
-                  onAddressDelete={() => {}}
-                  onAddNewAddress={() => {}}
-                  error={errors.address}
-                />
-
-                {/* Status kalkulasi ongkir */}
-                {shippingLoading && (
-                  <div className="mb-2 text-sm text-gray-500">
-                    Calculating shipping options…
-                  </div>
-                )}
-                {shippingError && (
-                  <div className="mb-2 text-sm text-red-600">
-                    {shippingError}
-                  </div>
-                )}
-
-                <DeliveryOptions
-                  options={deliveryOptions}
-                  selectedDelivery={selectedDelivery}
-                  onDeliverySelect={setSelectedDelivery}
-                  error={errors.delivery}
-                />
-
+               
                 <PaymentOptions
                   options={paymentOptions}
                   selectedPayment={selectedPayment}
@@ -427,11 +260,7 @@ const Checkout = () => {
                           : "bg-yellow-100 text-yellow-800"
                       }`}
                     >
-                      {paymentStatus === "SUCCESS"
-                        ? "Payment Successful"
-                        : paymentStatus === "FAILED"
-                        ? "Payment Failed"
-                        : "Payment Pending"}
+                      {paymentStatus}
                     </div>
                   )}
                 </div>
@@ -446,20 +275,9 @@ const Checkout = () => {
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm text-gray-600 mb-1">Payment Within</p>
-                    <div className="flex items-center space-x-2 text-lg font-bold">
-                      <span>{formatTimer(paymentTimer).hours}</span>
-                      <span className="text-gray-400">:</span>
-                      <span>{formatTimer(paymentTimer).minutes}</span>
-                      <span className="text-gray-400">:</span>
-                      <span>{formatTimer(paymentTimer).seconds}</span>
-                    </div>
-                    <div className="flex items-center space-x-4 text-xs text-gray-500">
-                      <span>Hours</span>
-                      <span>Minutes</span>
-                      <span>Seconds</span>
-                    </div>
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="text-sm text-gray-600 mb-1">Pay Before</p>
+                    
+                    <p className="text-sm text-gray-500 mt-1">
                       Due on {getExpiryDate()}
                     </p>
                   </div>
@@ -551,45 +369,52 @@ const Checkout = () => {
                       </p>
                       <p className="font-medium">Ngaraga</p>
                     </div>
-                    <div>
-                      <p className="text-sm text-gray-600 mb-1">
-                        Virtual Account Number
-                      </p>
-                      <div className="flex items-center space-x-2">
-                        <p className="font-medium">
-                          8017
-                          {transactionId
-                            ? transactionId.slice(-8)
-                            : Date.now().toString().slice(-8)}
+                    {paymentMethode !== "QRIS" && (
+                      <div>
+                        <p className="text-sm text-gray-600 mb-1">
+                          Virtual Account Number
                         </p>
-                        <button
-                          onClick={() => {
-                            const vaNumber = `8017${
-                              transactionId
-                                ? transactionId.slice(-8)
-                                : Date.now().toString().slice(-8)
-                            }`;
-                            navigator.clipboard.writeText(vaNumber);
-                            toast.success("Virtual account number copied!");
-                          }}
-                          className="text-gray-400 hover:text-gray-600 transition-colors"
-                        >
-                          <svg
-                            className="w-4 h-4"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
+                        <div className="flex items-center space-x-2">
+                          <p className="font-medium">
+                            8017
+                            {transactionId
+                              ? transactionId.slice(-8)
+                              : Date.now().toString().slice(-8)}
+                          </p>
+                          <button
+                            onClick={() => {
+                              const vaNumber = `8017${
+                                transactionId
+                                  ? transactionId.slice(-8)
+                                  : Date.now().toString().slice(-8)
+                              }`;
+                              navigator.clipboard.writeText(vaNumber);
+                              toast.success("Virtual account number copied!");
+                            }}
+                            className="text-gray-400 hover:text-gray-600 transition-colors"
                           >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
-                            />
-                          </svg>
-                        </button>
+                            <svg
+                              className="w-4 h-4"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                              />
+                            </svg>
+                          </button>
+                        </div>
                       </div>
-                    </div>
+                    )}
+                    {paymentMethode === "QRIS" && (
+                      <div>
+                        <img src={qrisurl ?? ""} alt="QRIS" />
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -628,7 +453,6 @@ const Checkout = () => {
                     onClick={() =>
                       transactionId && checkPaymentStatus(transactionId)
                     }
-                    disabled={isLoading || !transactionId || isCheckingPayment}
                     className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center space-x-2"
                   >
                     {isCheckingPayment ? (

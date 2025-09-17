@@ -12,9 +12,11 @@ import { listedParam } from "@/constant/listed.param";
 import { useNavigate } from "react-router-dom";
 import { useRef } from "react";
 import { flyToCart } from "@/components/ui/FlyToCart";
+import SeriesStore from "@/store/series.store";
 
 const HomeMarket = () => {
   const { categories, getCategory } = categoryStore();
+  const {series, getSeries} = SeriesStore()
   const { cards, getCard } = CardStore();
   const { user } = userStore();
   const navigate = useNavigate();
@@ -22,6 +24,7 @@ const HomeMarket = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("all");
+  const [Series, setSeries] = useState("all");
   const [itemsPerPage, setItemsPerPage] = useState(12);
   const [totalPages, setTotalPages] = useState(0);
 
@@ -30,16 +33,23 @@ const HomeMarket = () => {
   const cartIconRef = document.getElementById("cart-button");
 
   const fetchData = async () => {
-    const payload = `limit=${itemsPerPage}&page=${currentPage}&search=name:${search}${
-      category !== "all" ? `&categoryId=${category}` : ""
-    }`;
+    const filterCategory = category !== "all" ? `categoryId:${category}` : "";
+    const filterSeries = Series !== "all" ? `seriesId:${Series}` : "";
+
+    const stringFilter = [filterCategory, filterSeries]
+      .filter(Boolean)
+      .join("|");
+    const payload = `limit=${itemsPerPage}&page=${currentPage}${
+      search ? `&search=name:${search}` : ""
+    }${stringFilter ? `&where=${stringFilter}` : ""}`;
     await getCard(payload);
-    await getCategory(payload);
+    await getCategory("");
+    await getSeries("");
   };
 
   useEffect(() => {
     fetchData();
-  }, [currentPage, itemsPerPage, search, category]);
+  }, [currentPage, itemsPerPage, search, category, Series]);
 
   useEffect(() => {
     if (cards) {
@@ -93,6 +103,20 @@ const HomeMarket = () => {
             <select
               defaultValue="filter"
               className="select"
+              onChange={(e) => setSeries(e.target.value)}
+            >
+              <option value="all">All Series</option>
+              {series?.items?.map((items: any, index: number) => (
+                <option key={index} value={items.id}>
+                  {items.name}
+                </option>
+              ))}
+            </select>
+          </fieldset>
+          <fieldset className="fieldset">
+            <select
+              defaultValue="filter"
+              className="select"
               onChange={(e) => setCategory(e.target.value)}
             >
               <option value="all">All Category</option>
@@ -113,7 +137,6 @@ const HomeMarket = () => {
           </label>
         </div>
       </div>
-
 
       <div className="w-full flex flex-wrap justify-center items-center gap-8 mx-auto mt-10">
         {cards?.items?.map((card: any, index: number) => (
@@ -173,7 +196,6 @@ const HomeMarket = () => {
           onTotalPageItem={(total) => setItemsPerPage(total)}
         />
       </div>
-      
     </div>
   );
 };
